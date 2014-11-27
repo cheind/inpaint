@@ -49,10 +49,10 @@ namespace Inpaint {
 	    CriminisiInpainter();
 	
 	    /** Set the image to be inpainted. */
-	    void setImage(const cv::Mat &bgrImage);
+	    void setSourceImage(const cv::Mat &bgrImage);
 
 	    /** Set the mask that describes the region to be inpainted. */
-	    void setMask(const cv::Mat &mask);
+	    void setTargetMask(const cv::Mat &mask);
 
 	    /** Set the patch size. */
 	    void setPatchSize(int s);
@@ -64,10 +64,13 @@ namespace Inpaint {
 	    bool hasMoreSteps();
 
 	    /** Perform a single step (i.e fill one patch) and return the updated information. */
-	    void step(cv::Mat &updatedImage, cv::Mat &updatedMask);
+	    void step();
 
-	    /** Access the inpainted image. */
+	    /** Access the current state of the inpainted image. */
 	    cv::Mat image() const;
+
+        /** Access the current state of the target region. */
+	    cv::Mat targetRegion() const;
     private:
 
 	    /** Updates the fill-front which is the border between filled and unfilled regions. */
@@ -91,16 +94,11 @@ namespace Inpaint {
 	    /** Given that we know the source and target patch, propagate associated values from the source into the target region. */
 	    void propagatePatch(cv::Point target, cv::Point source);
 
-	    /** Returns a sub-image based on the patch described by its central pixel. */
-	    cv::Mat patchFromLocation(const cv::Mat &src, cv::Point p);
-
-	    /** Returns a sub-image based on the patch described by its central pixel and a custom patch size. */
-	    cv::Mat patchFromLocation(const cv::Mat &src, cv::Point p, int patchSize);
 	
 	    cv::Mat _image;
-	    cv::Mat_<uchar> _targetRegion, _borderRegion, _fillRegion, _sourceRegion, _initialSourceRegion;
+	    cv::Mat_<uchar> _targetRegion, _borderRegion, _sourceRegion;
 	    cv::Mat_<float> _isophoteX, _isophoteY, _confidence, _borderGradX, _borderGradY;
-	    int _patchSize;
+	    int _halfPatchSize, _halfMatchSize, _patchSize;
 	    int _startX, _startY, _endX, _endY;
     };
 

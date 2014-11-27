@@ -65,7 +65,7 @@ int main(int argc, char **argv)
 	ii.mask.create(ii.image.size(), CV_8UC1);
 	ii.mask.setTo(0);
 
-	cv::namedWindow("Image Inpaint", CV_WINDOW_FREERATIO);
+	cv::namedWindow("Image Inpaint", cv::WINDOW_NORMAL);
 	cv::setMouseCallback("Image Inpaint", onMouse, &ii);
 	//cv::createTrackbar("Patchsize", "Image Inpaint", &ii.patchSize, 20);
 	
@@ -73,18 +73,19 @@ int main(int argc, char **argv)
 	bool editingMode = true;
 
     Inpaint::CriminisiInpainter inpainter;
-	cv::Mat image, mask;	
+	cv::Mat image;	
 	while (!done) {
 		if (editingMode) {
 			image = ii.displayImage.clone();
 		} else {
 			if (inpainter.hasMoreSteps()) {
-				inpainter.step(image, mask);
-				image.setTo(cv::Scalar(0,250,0), mask);
+				inpainter.step();
+                inpainter.image().copyTo(image);
+                image.setTo(cv::Scalar(0,250,0), inpainter.targetRegion());
 			} else {
-				ii.image = inpainter.image();
+				ii.image = inpainter.image().clone();
 				ii.displayImage = ii.image.clone();
-				ii.mask = mask;
+                ii.mask = inpainter.targetRegion().clone();
 				ii.displayImage.setTo(cv::Scalar(0,250,0), ii.mask);
 				editingMode = true;
 			}
@@ -98,15 +99,15 @@ int main(int argc, char **argv)
 		} else if (key == 'e') {
 			if (editingMode) {
 				// Was in editing, now perform
-				inpainter.setImage(ii.image);
-				inpainter.setMask(ii.mask);
-				inpainter.setPatchSize(ii.patchSize);
-				inpainter.initialize();
+                inpainter.setSourceImage(ii.image);
+                inpainter.setTargetMask(ii.mask);
+                inpainter.setPatchSize(ii.patchSize);
+                inpainter.initialize();
 			} else {
 				// Was performing, allow editing based on current progress
-				ii.image = inpainter.image();
+				ii.image = inpainter.image().clone();
 				ii.displayImage = ii.image.clone();
-				ii.mask = mask;
+                ii.mask = inpainter.targetRegion().clone();
 				ii.displayImage.setTo(cv::Scalar(0,250,0), ii.mask);
 			}
 			editingMode = !editingMode;
@@ -121,7 +122,7 @@ int main(int argc, char **argv)
 	}
 
 	cv::imshow("source", inputImage);
-	cv::imshow("final", inpainter.image());
+    cv::imshow("final", inpainter.image());
 	cv::waitKey();
 	cv::imwrite("final.png", inpainter.image());
 

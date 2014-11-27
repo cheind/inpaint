@@ -18,6 +18,7 @@
 */
 
 #include <inpaint/criminisi_inpainter.h>
+#include <inpaint/patch.h>
 #include <opencv2/opencv.hpp>
 
 namespace Inpaint {
@@ -26,14 +27,14 @@ namespace Inpaint {
 	    : _patchSize(9)
     {}
 
-    void CriminisiInpainter::setImage(const cv::Mat &bgrImage)
+    void CriminisiInpainter::setSourceImage(const cv::Mat &bgrImage)
     {
 	    _image = bgrImage.clone();
     }
 
-    void CriminisiInpainter::setMask(const cv::Mat &mask)
+    void CriminisiInpainter::setTargetMask(const cv::Mat &mask)
     {
-	    _fillRegion = mask.clone();
+	    _targetRegion = mask.clone();
     }
 
     void CriminisiInpainter::setPatchSize(int s)
@@ -46,14 +47,23 @@ namespace Inpaint {
 	    return _image.clone();
     }
 
+    cv::Mat CriminisiInpainter::targetRegion() const
+    {
+	    return _targetRegion;
+    }
+
     void CriminisiInpainter::initialize()
     {
+        _halfPatchSize = _patchSize / 2;
+        _patchSize = _halfPatchSize * 2 + 1;
+        _halfMatchSize = (int) (_halfPatchSize * 1.25f);
+
+
 	    // Remove elements from target region that are on borders.
-	    cv::rectangle(_fillRegion, cv::Rect(0, 0, _fillRegion.cols, _fillRegion.rows), cv::Scalar(0), _patchSize);
+	    cv::rectangle(_targetRegion, cv::Rect(0, 0, _targetRegion.cols, _targetRegion.rows), cv::Scalar(0), _patchSize);
 
 	    // Initialize regions
-	    _sourceRegion = 255 - _fillRegion; 
-	    _initialSourceRegion = _sourceRegion.clone();
+	    _sourceRegion = 255 - _targetRegion; 
 
 	    // Initialize isophote values. Deviating from the original paper here. We've found that
 	    // blurring the image balances the data term and the confidence term better.
@@ -85,7 +95,7 @@ namespace Inpaint {
 	    // Initialize confidence values
 	    _confidence.create(_image.size());
 	    _confidence.setTo(1);
-	    _confidence.setTo(0, _fillRegion);
+	    _confidence.setTo(0, _targetRegion);
 
 	    // Configure valid image region
 	    int phalf = _patchSize / 2;
@@ -98,10 +108,10 @@ namespace Inpaint {
 
     bool CriminisiInpainter::hasMoreSteps()
     {
-	    return cv::countNonZero(_fillRegion) > 0;
+	    return cv::countNonZero(_targetRegion) > 0;
     }
 
-    void CriminisiInpainter::step(cv::Mat &updatedImage, cv::Mat &updatedMask)
+    void CriminisiInpainter::step()
     {	
 	    // We also need an updated knowledge of gradients in the border region
 	    updateFillFront();
@@ -114,15 +124,11 @@ namespace Inpaint {
 
 	    // Copy values
 	    propagatePatch(targetPatchLocation, sourcePatchLocation);
-
-	    // Prepare output
-	    _image.copyTo(updatedImage);
-	    _fillRegion.copyTo(updatedMask);
     }
 
     void CriminisiInpainter::updateFillFront()
     {
-	    cv::Laplacian(_fillRegion, _borderRegion, CV_8U, 3, 1, 0, cv::BORDER_REPLICATE);
+	    cv::Laplacian(_targetRegion, _borderRegion, CV_8U, 3, 1, 0, cv::BORDER_REPLICATE);
 
 	    // Update confidence values along fill front.
 	    for (int y = _startY; y < _endY; ++y) {
@@ -146,10 +152,10 @@ namespace Inpaint {
 	    float maxPriority = 0;
 	    cv::Point bestLocation(0, 0);
 
-	    _borderGradX.create(_sourceRegion.size());
-	    _borderGradY.create(_sourceRegion.size());
-	    cv::Sobel(_sourceRegion, _borderGradX, CV_32F, 1, 0, 3, 1, 0, cv::BORDER_REPLICATE);
-	    cv::Sobel(_sourceRegion, _borderGradY, CV_32F, 0, 1, 3, 1, 0, cv::BORDER_REPLICATE);
+	    _borderGradX.create(_targetRegion.size());
+	    _borderGradY.create(_targetRegion.size());
+	    cv::Sobel(_targetRegion, _borderGradX, CV_32F, 1, 0, 3, 1, 0, cv::BORDER_REPLICATE);
+	    cv::Sobel(_targetRegion, _borderGradY, CV_32F, 0, 1, 3, 1, 0, cv::BORDER_REPLICATE);
 
 	    const int ph = _patchSize / 2;
 
@@ -195,7 +201,7 @@ namespace Inpaint {
 
     float CriminisiInpainter::confidenceForPatchLocation(cv::Point p)
     {
-	    cv::Mat_<float> c = patchFromLocation(_confidence, p);
+        cv::Mat_<float> c = centeredPatchClamped(_confidence, p, _halfPatchSize);
 	    return (float)cv::sum(c)[0] / c.size().area();
     }
 
@@ -219,17 +225,16 @@ namespace Inpaint {
 
     float CriminisiInpainter::findSourcePatchLocationInWindow(cv::Point targetPatchLocation, cv::Point begin, cv::Point end, cv::Point &best)
     {
-	    int matchSize = (int)(_patchSize * 1.5);
-	    cv::Mat_<cv::Vec3b> targetImagePatch = patchFromLocation(_image, targetPatchLocation, matchSize);
-	    cv::Mat_<uchar> targetMask = patchFromLocation(_sourceRegion, targetPatchLocation, matchSize);
+        cv::Mat_<cv::Vec3b> targetImagePatch = centeredPatchClamped(_image, targetPatchLocation, _halfMatchSize);
+	    cv::Mat_<uchar> targetMask = centeredPatchClamped(_targetRegion, targetPatchLocation, _halfMatchSize);
 
 	    float bestError = std::numeric_limits<float>::max();
 
 	    for (int y = begin.y; y < end.y; ++y) {
 		    for (int x = begin.x; x < end.x; ++x) {
 			    cv::Point p(x, y);
-			    cv::Mat_<uchar> sourceMask = patchFromLocation(_initialSourceRegion, p, matchSize);
-			    cv::Mat_<cv::Vec3b> sourceImagePatch = patchFromLocation(_image, p, matchSize);
+			    cv::Mat_<uchar> sourceMask = centeredPatchClamped(_sourceRegion, p, _halfMatchSize);
+			    cv::Mat_<cv::Vec3b> sourceImagePatch = centeredPatchClamped(_image, p, _halfMatchSize);
 
 			    if (cv::countNonZero(sourceMask) != sourceMask.size().area())
 				    continue;
@@ -261,7 +266,7 @@ namespace Inpaint {
 		    const uchar *rTargetMask = targetMask.ptr<uchar>(y);
 		    for (int x = 0; x < targetImage.cols; ++x) {
 
-			    if (rTargetMask[x]) {
+			    if (!rTargetMask[x]) {
 				    const cv::Vec3f t = rTargetImage[x];
 				    const cv::Vec3f s = rSourceImage[x];
 				    const cv::Vec3f v = t - s;
@@ -276,41 +281,24 @@ namespace Inpaint {
 
     void CriminisiInpainter::propagatePatch(cv::Point target, cv::Point source)
     {
-	    cv::Mat_<uchar> copyMask = patchFromLocation(_fillRegion, target);
+        cv::Mat_<uchar> copyMask = centeredPatchClamped(_targetRegion, target, _halfPatchSize);
 
-	    patchFromLocation(_image, source).copyTo(
-		    patchFromLocation(_image, target), 
+	    centeredPatchClamped(_image, source, _halfPatchSize).copyTo(
+		    centeredPatchClamped(_image, target, _halfPatchSize), 
 		    copyMask);
 
-	    patchFromLocation(_isophoteX, source).copyTo(
-		    patchFromLocation(_isophoteX, target), 
+	    centeredPatchClamped(_isophoteX, source, _halfPatchSize).copyTo(
+		    centeredPatchClamped(_isophoteX, target, _halfPatchSize), 
 		    copyMask);		
 
-	    patchFromLocation(_isophoteY, source).copyTo(
-		    patchFromLocation(_isophoteY, target), 
+	    centeredPatchClamped(_isophoteY, source, _halfPatchSize).copyTo(
+		    centeredPatchClamped(_isophoteY, target, _halfPatchSize), 
 		    copyMask);
 
 	    float cPatch = _confidence.at<float>(target);
-	    patchFromLocation(_confidence, target).setTo(cPatch, copyMask);
+	    centeredPatchClamped(_confidence, target, _halfPatchSize).setTo(cPatch, copyMask);
 	
 	    copyMask.setTo(0);
-	    patchFromLocation(_sourceRegion, target).setTo(255);
-    }
-
-    cv::Mat CriminisiInpainter::patchFromLocation(const cv::Mat &src, cv::Point p)
-    {
-	    return patchFromLocation(src, p, _patchSize);	
-    }
-
-    cv::Mat CriminisiInpainter::patchFromLocation(const cv::Mat &src, cv::Point p, int patchSize)
-    {
-	    const int ph = patchSize / 2;
-	    const int topx = std::max<int>(p.x - ph, 0);
-	    const int topy = std::max<int>(p.y - ph, 0);
-	    const int bottomx = std::min<int>(p.x + ph + 1, src.cols - ph - 1);
-	    const int bottomy = std::min<int>(p.y + ph + 1, src.rows - ph - 1);
-
-	    return src(cv::Rect(topx, topy, bottomx - topx, bottomy - topy));
     }
 
 }
