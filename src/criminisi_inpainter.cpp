@@ -19,27 +19,38 @@
 
 #include <inpaint/criminisi_inpainter.h>
 #include <inpaint/patch.h>
+#include <inpaint/timer.h>
+#include <inpaint/template_match_candidates.h>
 #include <opencv2/opencv.hpp>
 
 namespace Inpaint {
 
+    CriminisiInpainter::UserSpecified::UserSpecified()
+    {
+        patchSize = 9;
+    }
+
     CriminisiInpainter::CriminisiInpainter()
-	    : _patchSize(9)
     {}
 
     void CriminisiInpainter::setSourceImage(const cv::Mat &bgrImage)
     {
-	    _image = bgrImage.clone();
+        _input.image = bgrImage;
     }
 
     void CriminisiInpainter::setTargetMask(const cv::Mat &mask)
     {
-	    _targetRegion = mask.clone();
+        _input.targetMask = mask;
+    }
+
+    void CriminisiInpainter::setSourceMask(const cv::Mat &mask)
+    {
+        _input.sourceMask = mask;
     }
 
     void CriminisiInpainter::setPatchSize(int s)
     {
-	    _patchSize = s;
+        _input.patchSize = s;
     }
 
     cv::Mat CriminisiInpainter::image() const
@@ -54,16 +65,29 @@ namespace Inpaint {
 
     void CriminisiInpainter::initialize()
     {
-        _halfPatchSize = _patchSize / 2;
-        _patchSize = _halfPatchSize * 2 + 1;
+        CV_Assert(
+            (_input.image.channels() == 3) &&
+             _input.image.depth() == CV_8U &&
+             _input.targetMask.size() == _input.image.size() &&
+             (_input.sourceMask.empty() || _input.targetMask.size() == _input.sourceMask.size()) &&
+             _input.patchSize > 0);
+
+        _halfPatchSize = _input.patchSize / 2;
         _halfMatchSize = (int) (_halfPatchSize * 1.25f);
 
+        _input.image.copyTo(_image);
+        _input.targetMask.copyTo(_targetRegion);
 
-	    // Remove elements from target region that are on borders.
-	    cv::rectangle(_targetRegion, cv::Rect(0, 0, _targetRegion.cols, _targetRegion.rows), cv::Scalar(0), _patchSize);
+        // Initialize regions
+        cv::rectangle(_targetRegion, cv::Rect(0, 0, _targetRegion.cols, _targetRegion.rows), cv::Scalar(0), _halfMatchSize);
 
-	    // Initialize regions
-	    _sourceRegion = 255 - _targetRegion; 
+        _sourceRegion = 255 - _targetRegion; 
+        cv::rectangle(_sourceRegion, cv::Rect(0, 0, _sourceRegion.cols, _sourceRegion.rows), cv::Scalar(0), _halfMatchSize);
+        cv::erode(_sourceRegion, _sourceRegion, cv::getStructuringElement(cv::MORPH_RECT, cv::Size(_halfMatchSize*2+1, _halfMatchSize*2+1)));
+
+        if (!_input.sourceMask.empty() && cv::countNonZero(_input.sourceMask) > 0) {
+            _sourceRegion.setTo(0, (_input.sourceMask == 0));
+        }
 
 	    // Initialize isophote values. Deviating from the original paper here. We've found that
 	    // blurring the image balances the data term and the confidence term better.
@@ -84,11 +108,10 @@ namespace Inpaint {
 		    float x = (vx[0] + vx[1] + vx[2]) / (3 * 255);
 		    float y = (vy[0] + vy[1] + vy[2]) / (3 * 255);
 
-		    float t = x;
-		    x = -y;
-		    y = t;
+            std::swap(x, y);
+            x *= -1;
 
-		    _isophoteX(i) = x;
+            _isophoteX(i) = x;
 		    _isophoteY(i) = y;
 	    }
 
@@ -97,13 +120,17 @@ namespace Inpaint {
 	    _confidence.setTo(1);
 	    _confidence.setTo(0, _targetRegion);
 
-	    // Configure valid image region
-	    int phalf = _patchSize / 2;
-	
-	    _startX = phalf * 2;
-	    _startY = phalf * 2;
-	    _endX = _image.cols - phalf * 2 - 1;
-	    _endY = _image.rows - phalf * 2 - 1;
+	    // Configure valid image region considered during algorithm
+	    _startX = _halfMatchSize;
+	    _startY = _halfMatchSize;
+	    _endX = _image.cols - _halfMatchSize - 1;
+	    _endY = _image.rows - _halfMatchSize - 1;
+
+        // Setup template match performance improvement
+        _tmc.setSourceImage(_image);
+        _tmc.setTemplateSize(cv::Size(_halfMatchSize * 2 + 1, _halfMatchSize * 2 + 1));
+        _tmc.setPartitionSize(cv::Size(3,3));
+        _tmc.initialize();
     }
 
     bool CriminisiInpainter::hasMoreSteps()
@@ -120,7 +147,9 @@ namespace Inpaint {
 	    cv::Point targetPatchLocation = findTargetPatchLocation();
 
 	    // Determine the best matching source patch from which to inpaint.
-	    cv::Point sourcePatchLocation = findSourcePatchLocation(targetPatchLocation);
+	    cv::Point sourcePatchLocation = findSourcePatchLocation(targetPatchLocation, true);
+        if (sourcePatchLocation.x == -1)
+            sourcePatchLocation = findSourcePatchLocation(targetPatchLocation, false);
 
 	    // Copy values
 	    propagatePatch(targetPatchLocation, sourcePatchLocation);
@@ -128,6 +157,7 @@ namespace Inpaint {
 
     void CriminisiInpainter::updateFillFront()
     {
+        // 2nd order derivative used to find border.
 	    cv::Laplacian(_targetRegion, _borderRegion, CV_8U, 3, 1, 0, cv::BORDER_REPLICATE);
 
 	    // Update confidence values along fill front.
@@ -156,8 +186,6 @@ namespace Inpaint {
 	    _borderGradY.create(_targetRegion.size());
 	    cv::Sobel(_targetRegion, _borderGradX, CV_32F, 1, 0, 3, 1, 0, cv::BORDER_REPLICATE);
 	    cv::Sobel(_targetRegion, _borderGradY, CV_32F, 0, 1, 3, 1, 0, cv::BORDER_REPLICATE);
-
-	    const int ph = _patchSize / 2;
 
 	    for (int y = _startY; y < _endY; ++y) {
 		    const uchar *bRow = _borderRegion.ptr(y);
@@ -205,78 +233,47 @@ namespace Inpaint {
 	    return (float)cv::sum(c)[0] / c.size().area();
     }
 
-    cv::Point CriminisiInpainter::findSourcePatchLocation(cv::Point targetPatchLocation)
+    cv::Point CriminisiInpainter::findSourcePatchLocation(cv::Point targetPatchLocation, bool useCandidateFilter)
     {	
-	    // Try to find a good match in a local window first
-	    int startY = std::max<int>(_startY, targetPatchLocation.y - (int)(0.25 * _image.rows));
-	    int startX = std::max<int>(_startX, targetPatchLocation.x - (int)(0.25 * _image.cols));
-	    int endY = std::min<int>(_endY, targetPatchLocation.y + (int)(0.25 * _image.rows));
-	    int endX = std::min<int>(_endX, targetPatchLocation.x + (int)(0.25 * _image.cols));
+        cv::Point bestLocation(-1, -1);
+        float bestError = std::numeric_limits<float>::max();
 
-	    cv::Point location;
-	    float error = findSourcePatchLocationInWindow(targetPatchLocation, cv::Point(startX, startY), cv::Point(endX, endY), location);
-
-	    if (error > 80.f) {
-		    error = findSourcePatchLocationInWindow(targetPatchLocation, cv::Point(_startX, _startY), cv::Point(_endX, _endY), location);
-	    }
-
-	    return location;
-    }
-
-    float CriminisiInpainter::findSourcePatchLocationInWindow(cv::Point targetPatchLocation, cv::Point begin, cv::Point end, cv::Point &best)
-    {
         cv::Mat_<cv::Vec3b> targetImagePatch = centeredPatchClamped(_image, targetPatchLocation, _halfMatchSize);
 	    cv::Mat_<uchar> targetMask = centeredPatchClamped(_targetRegion, targetPatchLocation, _halfMatchSize);
 
-	    float bestError = std::numeric_limits<float>::max();
+        Timer t;
+        
+        cv::Mat invTargetMask = (targetMask == 0);
+        cv::Mat candidates;
+        if (useCandidateFilter)
+            candidates = _tmc.findCandidates(targetImagePatch, invTargetMask, 3, 10);
+        
+        int count = 0;
+        for (int y = _startY; y < _endY; ++y) {
+		    for (int x = _startX; x < _endX; ++x) {
+			    
+                // Note, candidates need to be corrected. Centered patch locations used here, top-left used with candidates.
+                const bool shouldTest = (!useCandidateFilter || candidates.at<uchar>(y - _halfMatchSize, x - _halfMatchSize)) &&
+                                         _sourceRegion.at<uchar>(y, x) > 0;
 
-	    for (int y = begin.y; y < end.y; ++y) {
-		    for (int x = begin.x; x < end.x; ++x) {
-			    cv::Point p(x, y);
-			    cv::Mat_<uchar> sourceMask = centeredPatchClamped(_sourceRegion, p, _halfMatchSize);
-			    cv::Mat_<cv::Vec3b> sourceImagePatch = centeredPatchClamped(_image, p, _halfMatchSize);
+                if (shouldTest) {
+                    ++count;
+                    cv::Mat_<uchar> sourceMask = centeredPatchClamped(_sourceRegion, y, x, _halfMatchSize);
+			        cv::Mat_<cv::Vec3b> sourceImagePatch = centeredPatchClamped(_image, y, x, _halfMatchSize);
 
-			    if (cv::countNonZero(sourceMask) != sourceMask.size().area())
-				    continue;
+                    float error = (float)cv::norm(targetImagePatch, sourceImagePatch, cv::NORM_L1, invTargetMask);
 			
-			    float error = calculateTemplateMatchError(targetImagePatch, targetMask, sourceImagePatch);
-			
-			    if (error < bestError) {
-				    bestError = error;
-				    best = p;
-			    }
+			        if (error < bestError) {
+				        bestError = error;
+				        bestLocation = cv::Point(x, y);
+			        }
+                }
 		    }
 	    }
 
-	    return sqrtf(bestError);
-    }
+        std::cout << t.measure() * 1000  << " " << count << " of " << ((_endY-_startY)*(_endX-_startX))<<  std::endl;
 
-    float CriminisiInpainter::calculateTemplateMatchError(const cv::Mat &targetImage, const cv::Mat &targetMask, const cv::Mat &sourceImage)
-    {
-	    if (targetImage.size() != sourceImage.size()) {
-		    return std::numeric_limits<float>::max();
-	    }
-
-	    int count = 0;
-	    float sum = 0.f;
-
-	    for (int y = 0; y < targetImage.rows; ++y) {
-		    const cv::Vec3b *rTargetImage = targetImage.ptr<cv::Vec3b>(y);
-		    const cv::Vec3b *rSourceImage = sourceImage.ptr<cv::Vec3b>(y);
-		    const uchar *rTargetMask = targetMask.ptr<uchar>(y);
-		    for (int x = 0; x < targetImage.cols; ++x) {
-
-			    if (!rTargetMask[x]) {
-				    const cv::Vec3f t = rTargetImage[x];
-				    const cv::Vec3f s = rSourceImage[x];
-				    const cv::Vec3f v = t - s;
-				    sum += v.dot(v);
-				    count += 1;
-			    }
-		    }
-	    }
-
-	    return count > 0 ? sum / count : std::numeric_limits<float>::max();
+	    return bestLocation;
     }
 
     void CriminisiInpainter::propagatePatch(cv::Point target, cv::Point source)

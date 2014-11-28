@@ -20,6 +20,7 @@
 #ifndef INPAINT_CRIMINISI_INPAINTER_H
 #define INPAINT_CRIMINISI_INPAINTER_H
 
+#include <inpaint/template_match_candidates.h>
 #include <opencv2/core/core.hpp>
 
 namespace Inpaint {
@@ -51,6 +52,9 @@ namespace Inpaint {
 	    /** Set the image to be inpainted. */
 	    void setSourceImage(const cv::Mat &bgrImage);
 
+        /** Set the mask that describes the region inpainting can copy from. */
+        void setSourceMask(const cv::Mat &mask);
+
 	    /** Set the mask that describes the region to be inpainted. */
 	    void setTargetMask(const cv::Mat &mask);
 
@@ -80,25 +84,30 @@ namespace Inpaint {
 	    cv::Point findTargetPatchLocation();
 
 	    /** For a given patch to inpaint, search for the best matching source patch to use for inpainting. */
-	    cv::Point findSourcePatchLocation(cv::Point targetPatchLocation);
-
-	    /** For a given patch to inpaint, search for the best matching source patch to use for inpainting in the given window */
-	    float findSourcePatchLocationInWindow(cv::Point targetPatchLocation, cv::Point begin, cv::Point end, cv::Point &best);
+	    cv::Point findSourcePatchLocation(cv::Point targetPatchLocation, bool useCandidateFilter);
 
 	    /** Calculate the confidence for the given patch location. */
 	    float confidenceForPatchLocation(cv::Point p);
 	
-	    /** Compares pixel-wise source and target images. Returns the mean squared error of the inpainted pixels. */
-	    float calculateTemplateMatchError(const cv::Mat &targetImage, const cv::Mat &targetMask, const cv::Mat &sourceImage);
-
 	    /** Given that we know the source and target patch, propagate associated values from the source into the target region. */
 	    void propagatePatch(cv::Point target, cv::Point source);
 
+        struct UserSpecified {
+            cv::Mat image;
+            cv::Mat sourceMask;
+            cv::Mat targetMask;
+            int patchSize;
+
+            UserSpecified();
+        };
+
+        UserSpecified _input;
 	
+        TemplateMatchCandidates _tmc;
 	    cv::Mat _image;
 	    cv::Mat_<uchar> _targetRegion, _borderRegion, _sourceRegion;
 	    cv::Mat_<float> _isophoteX, _isophoteY, _confidence, _borderGradX, _borderGradY;
-	    int _halfPatchSize, _halfMatchSize, _patchSize;
+	    int _halfPatchSize, _halfMatchSize;
 	    int _startX, _startY, _endX, _endY;
     };
 
