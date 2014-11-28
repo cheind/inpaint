@@ -17,27 +17,33 @@
    along with Inpaint.  If not, see <http://www.gnu.org/licenses/>.
 */
 
+#define CATCH_CONFIG_MAIN  
 #include "catch.hpp"
-#include "random_image.h"
 
-#include <inpaint/criminisi_inpainter.h>
+#include <inpaint/timer.h>
 #include <opencv2/opencv.hpp>
+#include <iostream>
 
 using namespace Inpaint;
 
-TEST_CASE("criminisi")
+TEST_CASE("opencv-region")
 {
-    cv::Mat img = uniformRandomNoiseImage(50);
-    cv::cvtColor(img, img, cv::COLOR_GRAY2BGR);
-    cv::Mat mask(img.size(), CV_8UC1);
-    mask.setTo(0);
+    cv::Mat img(100, 100, CV_8UC3);
 
-    CriminisiInpainter inpainter;
-    inpainter.setSourceImage(img);
-    inpainter.setTargetMask(mask);
-    inpainter.setPatchSize(9);
-    inpainter.initialize();
+    Timer t;
+    int sum = 0;
+    cv::Rect r(10, 10, 20, 20);
+    for (int i = 0; i < 500000; ++i) {
+        sum += img(r).rows;
+    }
+
+    std::cout << "operator() took: " << t.measure() * 1000 << " msec." << std::endl;
     
-    REQUIRE(img.size() == inpainter.image().size());
-    REQUIRE(cv::norm(img, inpainter.image()) == 0);
+    sum = 0;
+    for (int i = 0; i < 500000; ++i) {
+        uchar *start = img.ptr<uchar>(10, 10);
+        sum += cv::Mat(20,20,CV_8UC3, start, img.step[0]).rows;
+    }
+
+    std::cout << "hand-crafted took: " << t.measure() * 1000 << " msec." << std::endl;
 }
