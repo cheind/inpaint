@@ -17,8 +17,13 @@ include_directories(${OpenCV_INCLUDE_DIRS} "inc")
 add_library(inpaint 
 	inc/inpaint/patch.h
 	inc/inpaint/gradient.h
+    inc/inpaint/integral.h
+    inc/inpaint/timer.h
 	inc/inpaint/criminisi_inpainter.h
-	src/criminisi_inpainter.cpp)
+	inc/inpaint/template_match_candidates.h
+	src/criminisi_inpainter.cpp
+	src/template_match_candidates.cpp
+)
 	
 target_link_libraries(inpaint ${OpenCV_LIBRARIES})
 	
@@ -35,6 +40,17 @@ add_executable(inpaint_tests
 	tests/random_image.h
 	tests/gradient.cpp
 	tests/patch.cpp
+    tests/integral.cpp
 	tests/criminisi_inpainter.cpp
+    tests/template_match_candidates.cpp
 )
 target_link_libraries (inpaint_tests inpaint ${OpenCV_LIBRARIES})
+
+# Benchmarks
+
+include_directories("benchmarks")
+add_executable(inpaint_benchmarks 
+	benchmarks/catch.hpp
+	benchmarks/opencv.cpp	
+)
+target_link_libraries (inpaint_benchmarks inpaint ${OpenCV_LIBRARIES})

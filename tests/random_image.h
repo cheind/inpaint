@@ -52,4 +52,27 @@ inline cv::Mat uniformRandomNoiseImage(int imageSize)
     return m;
 }
 
+inline cv::Mat randomBlock(const cv::Mat &image, cv::Rect &r)
+{
+    cv::RNG rng;
+
+    int x1 = rng.uniform(0, image.cols - 1);
+    int x2 = rng.uniform(0, image.cols - 1);
+    
+    if (x2 < x1) {
+        std::swap(x1, x2);
+    }
+
+    int y1 = rng.uniform(0, image.rows - 1);
+    int y2 = rng.uniform(0, image.rows - 1);
+    
+    if (y2 < y1) {
+        std::swap(y1, y2);
+    }
+
+    r = cv::Rect(x1, y1, x2 - x1, y2 - y1);
+    return image(r);
+}
+    
+
 #endif
