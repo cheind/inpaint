@@ -24,9 +24,11 @@
 
 struct ImageInfo {
 	cv::Mat image;
-	cv::Mat mask;
+	cv::Mat targetMask;
+    cv::Mat sourceMask;
 	cv::Mat displayImage;
-	bool mouseDown;
+	bool leftMouseDown;
+    bool rightMouseDown;
 	int patchSize;
 };
 
@@ -34,16 +36,23 @@ void onMouse(int eventType, int x, int y, int flags, void* data)
 {
 	ImageInfo &ii = *reinterpret_cast<ImageInfo*>(data);
 	if (eventType == cv::EVENT_LBUTTONDOWN)
-		ii.mouseDown = true;
+		ii.leftMouseDown = true;
 	else if (eventType == cv::EVENT_LBUTTONUP)
-		ii.mouseDown = false;
+		ii.leftMouseDown = false;
+    else if (eventType == cv::EVENT_RBUTTONDOWN)
+		ii.rightMouseDown = true;
+    else if (eventType == cv::EVENT_RBUTTONUP)
+		ii.rightMouseDown = false;
 
-	if (!ii.mouseDown)
+    if (!ii.leftMouseDown && !ii.rightMouseDown)
         return;
 
-	cv::circle(ii.mask, cv::Point(x, y), ii.displayImage.rows / 40, cv::Scalar(255), -1);
-	ii.displayImage.setTo(cv::Scalar(0,250,0), ii.mask);
-	cv::imshow("Image Inpaint", ii.displayImage);
+    cv::Mat &mask = ii.leftMouseDown ? ii.targetMask : ii.sourceMask;
+    cv::Scalar color = ii.leftMouseDown ? cv::Scalar(0,250,0) : cv::Scalar(0,250,250);
+    
+    cv::circle(mask, cv::Point(x, y), ii.displayImage.rows / 40, cv::Scalar(255), -1);
+	ii.displayImage.setTo(color, mask);	    
+    cv::imshow("Image Inpaint", ii.displayImage);
 }
 
 /** Main entry point */
@@ -57,17 +66,20 @@ int main(int argc, char **argv)
 	cv::Mat inputImage = cv::imread(argv[1]);
 
 	ImageInfo ii;
-	ii.mouseDown = false;
+	ii.leftMouseDown = false;
+    ii.rightMouseDown = false;
 	ii.patchSize = 9;
 
 	ii.image = inputImage.clone();
 	ii.displayImage = ii.image.clone();
-	ii.mask.create(ii.image.size(), CV_8UC1);
-	ii.mask.setTo(0);
+    ii.targetMask.create(ii.image.size(), CV_8UC1);
+	ii.targetMask.setTo(0);
+    ii.sourceMask.create(ii.image.size(), CV_8UC1);
+	ii.sourceMask.setTo(0);
 
 	cv::namedWindow("Image Inpaint", cv::WINDOW_NORMAL);
 	cv::setMouseCallback("Image Inpaint", onMouse, &ii);
-	//cv::createTrackbar("Patchsize", "Image Inpaint", &ii.patchSize, 20);
+	cv::createTrackbar("Patchsize", "Image Inpaint", &ii.patchSize, 20);
 	
 	bool done = false;
 	bool editingMode = true;
@@ -85,8 +97,7 @@ int main(int argc, char **argv)
 			} else {
 				ii.image = inpainter.image().clone();
 				ii.displayImage = ii.image.clone();
-                ii.mask = inpainter.targetRegion().clone();
-				ii.displayImage.setTo(cv::Scalar(0,250,0), ii.mask);
+                ii.targetMask = inpainter.targetRegion().clone();
 				editingMode = true;
 			}
 		}
@@ -100,23 +111,20 @@ int main(int argc, char **argv)
 			if (editingMode) {
 				// Was in editing, now perform
                 inpainter.setSourceImage(ii.image);
-                inpainter.setTargetMask(ii.mask);
+                inpainter.setTargetMask(ii.targetMask);
+                inpainter.setSourceMask(ii.sourceMask);
                 inpainter.setPatchSize(ii.patchSize);
                 inpainter.initialize();
-			} else {
-				// Was performing, allow editing based on current progress
-				ii.image = inpainter.image().clone();
-				ii.displayImage = ii.image.clone();
-                ii.mask = inpainter.targetRegion().clone();
-				ii.displayImage.setTo(cv::Scalar(0,250,0), ii.mask);
-			}
+			} 
 			editingMode = !editingMode;
 		} else if (key == 'r') {
 			// revert
 			ii.image = inputImage.clone();
 			ii.displayImage = ii.image.clone();
-			ii.mask.create(ii.image.size(), CV_8UC1);
-			ii.mask.setTo(0);
+			ii.targetMask.create(ii.image.size(), CV_8UC1);
+			ii.targetMask.setTo(0);
+            ii.sourceMask.create(ii.image.size(), CV_8UC1);
+			ii.sourceMask.setTo(0);
 			editingMode = true;
 		}
 	}
