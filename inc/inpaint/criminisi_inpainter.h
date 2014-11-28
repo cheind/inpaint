@@ -26,22 +26,20 @@
 namespace Inpaint {
 
     /** 
-      * Implementation of the exemplar based inpainting algorithm described in
-      * "Object Removal by Exemplar-Based Inpainting", A. Criminisi et. al. 
-      *
-      * The implementation is not optimized for speed and trimmed towards educational 
-      * purposes. Edge cases (i.e regions on the image border) are crudely handled by simply
-      * discarding them.
-      *
-      * Besides, several robustness improvments are made by Christoph Heindl:
-      *  - the template match error is calculated based on larger patch sizes than those
-      *    used to infill. The reason behind this is to compare a larger portion of source
-      *	   and target regions and thus to avoid visual artefacts.
-      *
-      *  - the search area for a patch to use for inpainting the target patch is first constrained
-      *    to a local window around the target patch. If the best error within this search region is
-      *	   too large, the search area is extended to the entire window. This is kind of a performance
-      *    improvement with the reasoning that good matching exemplars are found nearby the target area.  
+        Implementation of the exemplar based inpainting algorithm described in
+        "Object Removal by Exemplar-Based Inpainting", A. Criminisi et. al. 
+            
+        Changes made by the author with respect to the original paper:
+            - the template match error is calculated based on larger patch sizes than those
+              used to infill. The reason behind this is to compare a larger portion of source
+              and target regions and thus to avoid visual artefacts.
+      
+            - the search for the best matching spot of the patch position to be inpainted
+              is accelerated by TemplateMatchCandidates.
+
+        Please note edge cases (i.e regions on the image border) are crudely handled by simply 
+        discarding them.
+
       */
     class CriminisiInpainter {
     public:

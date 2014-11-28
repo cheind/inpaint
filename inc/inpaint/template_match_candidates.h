@@ -27,16 +27,57 @@ namespace Inpaint {
     /**
         Find candidate positions for template matching.
 
-        Implementation based on 
+        Implementation is based on 
         "Speed-up Template Matching through Integral Image based Weak Classifiers", Tirui Wu et. al.
+
+        This method subdivides the template into a set of blocks. For each block the mean (of each
+        channel) is calculated and compared to the mean of the entire template. A binary decision is
+        based on whether the block mean is bigger than the template mean. Such a decision is made for
+        each block.
+
+        Then for each template position in the source image, the same procedure as described above is
+        applied (replace "template" with "region of image") and the binary decisions are compared. If
+        too many descisions mismatch, the current position is said not to be a candidate.
+
+        What makes the method fast is the use of integral images for calculating means. Using integral
+        images reduces the calculated of the mean to two additions, two subtractions and a division, 
+        independent of the size of the rectangle to calculate the mean for.
+
+        Changes made by the author with respect to the original paper:
+            - The algorithm works with 1 or 3 channel images. If multiple image channels are present
+              each channel is treated seperately.
+
+            - A mask can be passed with the template. The mask defines the valid areas within the 
+              template. Only those areas are considered during classification. A block is rejected
+              from the decision process if not all its pixels are masked. If no mask is passed, all
+              blocks are considered valid.
+
+            - A parameter called maxCandidates is introduced. Once maxCandidates are found, the
+              algorithm returns the set of candidates found so far.
     */
     class TemplateMatchCandidates {
     public:
+        /** Set the source image. */
         void setSourceImage(const cv::Mat &image);
+        
+        /** Set the template size. */
         void setTemplateSize(cv::Size templateSize);
+
+        /** Set the partition size. Specifies the number of blocks in x and y direction. */
         void setPartitionSize(cv::Size s);
+
+        /** Initialize candidate search. */
         void initialize();
 
+        /** 
+            Find candidates.
+
+            \param templ Template image.
+            \param templMask Optional template mask.
+            \param maxWeakErrors Max classification mismatches per channel.
+            \param maxMeanDifference Max difference of patch / template mean before rejecting a candidate.
+            \return Candidate mask.
+        */
         cv::Mat findCandidates(
             const cv::Mat &templ, 
             const cv::Mat &templMask = cv::Mat(), 
@@ -45,15 +86,18 @@ namespace Inpaint {
 
     private:
 
+        /** Subdivides a size into a rectangle of blocks. */
         void computeBlockRects(
             cv::Size size, 
             cv::Size partitions, 
             std::vector< cv::Rect > &rects);
 
+        /** Reject blocks depending on the template mask. */
         void removeInvalidBlocks(
             const cv::Mat &templMask, 
             std::vector< cv::Rect > &rects);
 
+        /** Calculate the weak classifiers for the template, taking the mask into account. */
         void weakClassifiersForTemplate(
             const cv::Mat &templ, 
             const cv::Mat &templMask, 
@@ -61,6 +105,7 @@ namespace Inpaint {
             cv::Mat_<int> &classifiers, 
             cv::Scalar &mean);
 
+        /** Compare the template classifiers to the classifiers generated from the given template position. */
         uchar compareWeakClassifiers(
             const cv::Mat_<int> &i, 
             int x, int y, 
@@ -78,7 +123,19 @@ namespace Inpaint {
         cv::Size _partitionSize;
     };
 
+    /**  
+        Find candidate positions for template matching.
 
+        This is a convinience method for using TemplateMatchCandidates.
+
+        \param image Image to search in
+        \param templ Template image
+        \param templMask Optional template mask
+        \param partitionSize Number of blocks to subdivide template into
+        \param maxWeakErrors Max classification mismatches per channel.
+        \param maxMeanDifference Max difference of patch / template mean before rejecting a candidate.
+        \return Candidate mask
+    */
     cv::Mat findTemplateMatchCandidates(
         const cv::Mat &image,
         const cv::Mat &templ,

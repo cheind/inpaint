@@ -79,7 +79,7 @@ int main(int argc, char **argv)
 
 	cv::namedWindow("Image Inpaint", cv::WINDOW_NORMAL);
 	cv::setMouseCallback("Image Inpaint", onMouse, &ii);
-	cv::createTrackbar("Patchsize", "Image Inpaint", &ii.patchSize, 20);
+	cv::createTrackbar("Patchsize", "Image Inpaint", &ii.patchSize, 50);
 	
 	bool done = false;
 	bool editingMode = true;
