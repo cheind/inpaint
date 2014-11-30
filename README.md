@@ -4,7 +4,7 @@
 
 While inpainting refers to restoring rather small regions such as scratches and other video artefacts, image completion deals with removal / restoring of large image parts.
 
-**Inpaint** focuses on the task of object removal and is therefore optimized to work with larger areas of reconstruction. Below is a side-by-side view of two images. On the left the original image, on the right the modified image as produced by **Inpaint**, after the user selected the rope to be removed.
+**Inpaint** focuses on the task of object removal and is therefore optimized to work with large areas of reconstruction. Below is a side-by-side view of two images. On the left the original image, on the right the modified image as produced by **Inpaint**, after the user selected the rope to be removed.
 
 | Original        | Inpainted     |
 | :-------------: |:-------------:|
