@@ -46,5 +46,39 @@ namespace Inpaint {
         double _invFreq;
     };
 
+    class TimerWithStats {
+    public:
+
+        inline void measure(int index) 
+        {
+            _stats[index].sum += _t.measure();
+            _stats[index].called += 1;
+        }
+
+        inline double mean(int index) const
+        {
+            return _stats[index].sum / _stats[index].called;
+        }
+
+        inline double total(int index) const
+        {
+            return _stats[index].sum ;
+        }
+
+    private:
+
+        struct Stats {
+            int64 called;
+            double sum;
+
+            Stats()
+                : called(0), sum(0)
+            {}
+        };
+
+        Stats _stats[10];
+        Timer _t;
+    };
+
 }
 #endif
