@@ -21,29 +21,39 @@
 #include "catch.hpp"
 
 #include <inpaint/timer.h>
+#include <inpaint/patch.h>
 #include <opencv2/opencv.hpp>
 #include <iostream>
 
 using namespace Inpaint;
 
-TEST_CASE("opencv-region")
+TEST_CASE("patch")
 {
     cv::Mat img(100, 100, CV_8UC3);
+    const int niter = 500000;
 
     Timer t;
     int sum = 0;
-    cv::Rect r(10, 10, 20, 20);
-    for (int i = 0; i < 500000; ++i) {
-        sum += img(r).rows;
+    for (int i = 0; i < niter; ++i) {
+        sum += centeredPatch<PATCH_BOUNDS | PATCH_REF>(img, 10, 10, 10).rows;
     }
+    std::cout << "centeredPatch<PATCH_BOUNDS | PATCH_REF>:  " << ((t.measure() * 1000))<< " msec."  << std::endl;
 
-    std::cout << "operator() took: " << t.measure() * 1000 << " msec." << std::endl;
+    sum = 0;
+    for (int i = 0; i < niter; ++i) {
+        sum += centeredPatch<PATCH_BOUNDS>(img, 10, 10, 10).rows;
+    }
+    std::cout << "centeredPatch<PATCH_BOUNDS>:  " << ((t.measure() * 1000))<< " msec."  << std::endl;
     
     sum = 0;
-    for (int i = 0; i < 500000; ++i) {
-        uchar *start = img.ptr<uchar>(10, 10);
-        sum += cv::Mat(20,20,CV_8UC3, start, img.step[0]).rows;
+    for (int i = 0; i < niter; ++i) {
+        sum += centeredPatch<PATCH_REF>(img, 10, 10, 10).rows;
     }
+    std::cout << "centeredPatch<PATCH_REF>:  " << ((t.measure() * 1000))<< " msec."  << std::endl;
 
-    std::cout << "hand-crafted took: " << t.measure() * 1000 << " msec." << std::endl;
+    sum = 0;
+    for (int i = 0; i < niter; ++i) {
+        sum += centeredPatch<PATCH_FAST>(img, 10, 10, 10).rows;
+    }
+    std::cout << "centeredPatch<PATCH_FAST>:  " << ((t.measure() * 1000))<< " msec."  << std::endl;
 }

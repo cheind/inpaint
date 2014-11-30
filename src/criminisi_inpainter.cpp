@@ -25,6 +25,8 @@
 
 namespace Inpaint {
 
+    const int PATCHFLAGS = PATCH_BOUNDS;
+
     CriminisiInpainter::UserSpecified::UserSpecified()
     {
         patchSize = 9;
@@ -229,7 +231,7 @@ namespace Inpaint {
 
     float CriminisiInpainter::confidenceForPatchLocation(cv::Point p)
     {
-        cv::Mat_<float> c = centeredPatchClamped(_confidence, p, _halfPatchSize);
+        cv::Mat_<float> c = centeredPatch<PATCHFLAGS>(_confidence, p.y, p.x, _halfPatchSize);
 	    return (float)cv::sum(c)[0] / c.size().area();
     }
 
@@ -238,8 +240,8 @@ namespace Inpaint {
         cv::Point bestLocation(-1, -1);
         float bestError = std::numeric_limits<float>::max();
 
-        cv::Mat_<cv::Vec3b> targetImagePatch = centeredPatchClamped(_image, targetPatchLocation, _halfMatchSize);
-	    cv::Mat_<uchar> targetMask = centeredPatchClamped(_targetRegion, targetPatchLocation, _halfMatchSize);
+        cv::Mat_<cv::Vec3b> targetImagePatch = centeredPatch<PATCHFLAGS>(_image, targetPatchLocation.y, targetPatchLocation.x, _halfMatchSize);
+	    cv::Mat_<uchar> targetMask = centeredPatch<PATCHFLAGS>(_targetRegion, targetPatchLocation.y, targetPatchLocation.x, _halfMatchSize);
 
         Timer t;
         
@@ -258,8 +260,8 @@ namespace Inpaint {
 
                 if (shouldTest) {
                     ++count;
-                    cv::Mat_<uchar> sourceMask = centeredPatchClamped(_sourceRegion, y, x, _halfMatchSize);
-			        cv::Mat_<cv::Vec3b> sourceImagePatch = centeredPatchClamped(_image, y, x, _halfMatchSize);
+                    cv::Mat_<uchar> sourceMask = centeredPatch<PATCHFLAGS>(_sourceRegion, y, x, _halfMatchSize);
+			        cv::Mat_<cv::Vec3b> sourceImagePatch = centeredPatch<PATCHFLAGS>(_image, y, x, _halfMatchSize);
 
                     float error = (float)cv::norm(targetImagePatch, sourceImagePatch, cv::NORM_L1, invTargetMask);
 			
@@ -278,22 +280,22 @@ namespace Inpaint {
 
     void CriminisiInpainter::propagatePatch(cv::Point target, cv::Point source)
     {
-        cv::Mat_<uchar> copyMask = centeredPatchClamped(_targetRegion, target, _halfPatchSize);
+        cv::Mat_<uchar> copyMask = centeredPatch<PATCHFLAGS>(_targetRegion, target.y, target.x, _halfPatchSize);
 
-	    centeredPatchClamped(_image, source, _halfPatchSize).copyTo(
-		    centeredPatchClamped(_image, target, _halfPatchSize), 
+	    centeredPatch<PATCHFLAGS>(_image, source.y, source.x, _halfPatchSize).copyTo(
+		    centeredPatch<PATCHFLAGS>(_image, target.y, target.x, _halfPatchSize), 
 		    copyMask);
 
-	    centeredPatchClamped(_isophoteX, source, _halfPatchSize).copyTo(
-		    centeredPatchClamped(_isophoteX, target, _halfPatchSize), 
+	    centeredPatch<PATCHFLAGS>(_isophoteX, source.y, source.x, _halfPatchSize).copyTo(
+		    centeredPatch<PATCHFLAGS>(_isophoteX, target.y, target.x, _halfPatchSize), 
 		    copyMask);		
 
-	    centeredPatchClamped(_isophoteY, source, _halfPatchSize).copyTo(
-		    centeredPatchClamped(_isophoteY, target, _halfPatchSize), 
+	    centeredPatch<PATCHFLAGS>(_isophoteY, source.y, source.x, _halfPatchSize).copyTo(
+		    centeredPatch<PATCHFLAGS>(_isophoteY, target.y, target.x, _halfPatchSize), 
 		    copyMask);
 
 	    float cPatch = _confidence.at<float>(target);
-	    centeredPatchClamped(_confidence, target, _halfPatchSize).setTo(cPatch, copyMask);
+	    centeredPatch<PATCHFLAGS>(_confidence, target.y, target.x, _halfPatchSize).setTo(cPatch, copyMask);
 	
 	    copyMask.setTo(0);
     }

@@ -24,9 +24,21 @@
 
 namespace Inpaint {
 
+    /** Flags for creating patch. */
+    enum PatchFlags {
+        /** No flags. Fastest variant. */
+        PATCH_FAST = 0,
+        /** Clamp patch to bounds of image. */
+        PATCH_BOUNDS = 1 << 1,
+        /** Reference parent memory. Slower, but keeps the parent memory alive. */
+        PATCH_REF = 1 << 2
+    };
+  
     /** 
         Returns a patch centered around the given pixel coordinates.
-        No bounds checking is performed.
+
+        \tparam Flags Combination of flags for patch creation.
+        \tparam T Data-type of cv::Mat_
 
         \param m Underlying image
         \param y y-coordinate of the patch center
@@ -34,15 +46,42 @@ namespace Inpaint {
         \param halfPatchSize Half the patch size. I.e for a 3x3 patch window, set this to 1.
         \return Returns a view on the image that contains only the patch region.
     */
-    template<class Mat>
-    Mat centeredPatch(const Mat &m, int y, int x, int halfPatchSize) 
+    template<int Flags, class T>
+    cv::Mat_<T> centeredPatch(const cv::Mat_<T> &m, int y, int x, int halfPatchSize) 
     {
-        return m(cv::Rect(x - halfPatchSize, y - halfPatchSize, halfPatchSize * 2 + 1, halfPatchSize * 2 + 1));
+        int width, height;
+
+        if (Flags & PATCH_BOUNDS) {
+            const int topx = std::max<int>(x - halfPatchSize, 0);
+	        const int topy = std::max<int>(y - halfPatchSize, 0);
+	        const int bottomx = std::min<int>(x + halfPatchSize, m.cols - 1);
+            const int bottomy = std::min<int>(y + halfPatchSize, m.rows - 1);
+
+            x = topx;
+            y = topy;
+            width = bottomx - topx + 1;
+            height = bottomy - topy + 1;
+
+        } else {           
+            x -= halfPatchSize;
+            y -= halfPatchSize;
+            width = halfPatchSize * 2 + 1;
+            height = halfPatchSize * 2 + 1;
+        }
+
+        if (Flags & PATCH_REF) {
+            return m(cv::Rect(x, y, width, height));
+        } else {
+            T *start = const_cast<T*>(m.ptr<T>(y, x));
+            return cv::Mat_<T>(height, width, start, m.step);        
+        }
     }
 
     /** 
         Returns a patch centered around the given pixel coordinates.
-        No bounds checking is performed.
+
+        \tparam Flags Combination of flags for patch creation.
+        \tparam T Data-type of cv::Mat_
 
         \param m Underlying image
         \param y y-coordinate of the patch center
@@ -50,48 +89,57 @@ namespace Inpaint {
         \param halfPatchSize Half the patch size. I.e for a 3x3 patch window, set this to 1.
         \return Returns a view on the image that contains only the patch region.
     */
-    template<class Mat>
-    Mat centeredPatch(const Mat &m, cv::Point p, int halfPatchSize) 
+    template<int Flags>
+    cv::Mat centeredPatch(const cv::Mat &m, int y, int x, int halfPatchSize) 
     {
-        return centeredPatch(m, p.y, p.x, halfPatchSize);
+        int width, height;
+
+        if (Flags & PATCH_BOUNDS) {
+            const int topx = std::max<int>(x - halfPatchSize, 0);
+	        const int topy = std::max<int>(y - halfPatchSize, 0);
+	        const int bottomx = std::min<int>(x + halfPatchSize, m.cols - 1);
+            const int bottomy = std::min<int>(y + halfPatchSize, m.rows - 1);
+
+            x = topx;
+            y = topy;
+            width = bottomx - topx + 1;
+            height = bottomy - topy + 1;
+
+        } else {           
+            x -= halfPatchSize;
+            y -= halfPatchSize;
+            width = halfPatchSize * 2 + 1;
+            height = halfPatchSize * 2 + 1;
+        }
+
+        if (Flags & PATCH_REF) {
+            return m(cv::Rect(x, y, width, height));
+        } else {
+            uchar *start = const_cast<uchar*>(m.ptr<uchar>(y, x));
+            return cv::Mat(height, width, m.type(), start, m.step);        
+        }
     }
 
     /** 
         Returns a patch centered around the given pixel coordinates.
-        Clamps the patch size where it would otherwise reach out of image bounds.
-
-        \param m Underlying image
-        \param y y-coordinate of the patch center
-        \param x x-coordinate of the patch center
-        \param halfPatchSize Half the patch size. I.e for a 3x3 patch window, set this to 1.
-        \return Returns a view on the image that contains only the patch region.
     */
-    template<class Mat>
-    Mat centeredPatchClamped(const Mat &m, int y, int x, int halfPatchSize) 
+    inline cv::Mat centeredPatch(const cv::Mat &m, int y, int x, int halfPatchSize) 
     {
-        const int topx = std::max<int>(x - halfPatchSize, 0);
-	    const int topy = std::max<int>(y - halfPatchSize, 0);
-	    const int bottomx = std::min<int>(x + halfPatchSize, m.cols - 1);
-	    const int bottomy = std::min<int>(y + halfPatchSize, m.rows - 1);
-
-	    return m(cv::Rect(topx, topy, bottomx - topx + 1, bottomy - topy + 1));
+        return centeredPatch<PATCH_FAST>(m, y, x, halfPatchSize);
     }
 
     /** 
         Returns a patch centered around the given pixel coordinates.
-        Clamps the patch size where it would otherwise reach out of image bounds.
-
-        \param m Underlying image
-        \param y y-coordinate of the patch center
-        \param x x-coordinate of the patch center
-        \param halfPatchSize Half the patch size. I.e for a 3x3 patch window, set this to 1.
-        \return Returns a view on the image that contains only the patch region.
     */
-    template<class Mat>
-    Mat centeredPatchClamped(const Mat &m, cv::Point p, int halfPatchSize) 
+    template <class T>
+    cv::Mat_<T> centeredPatch(const cv::Mat_<T> &m, int y, int x, int halfPatchSize) 
     {
-        return centeredPatchClamped(m, p.y, p.x, halfPatchSize);
+        return centeredPatch<PATCH_FAST>(m, y, x, halfPatchSize);
     }
+
+
+
+    
 
 }
 #endif
