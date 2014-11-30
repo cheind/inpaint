@@ -51,6 +51,7 @@ namespace Inpaint {
     {
         int width, height;
 
+        // Note, if's are compile time if's and will be optimized away.
         if (Flags & PATCH_BOUNDS) {
             const int topx = std::max<int>(x - halfPatchSize, 0);
 	        const int topy = std::max<int>(y - halfPatchSize, 0);
@@ -121,7 +122,7 @@ namespace Inpaint {
     }
 
     /** 
-        Returns a patch centered around the given pixel coordinates.
+        Returns a patch centered around the given pixel coordinates. 
     */
     inline cv::Mat centeredPatch(const cv::Mat &m, int y, int x, int halfPatchSize) 
     {
