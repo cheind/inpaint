@@ -20,6 +20,7 @@
 #ifndef INPAINT_PATCH_H
 #define INPAINT_PATCH_H
 
+#include <inpaint/stats.h>
 #include <opencv2/core/core.hpp>
 
 namespace Inpaint {
@@ -33,84 +34,33 @@ namespace Inpaint {
         /** Reference parent memory. Slower, but keeps the parent memory alive. */
         PATCH_REF = 1 << 2
     };
-  
-    /** 
-        Returns a patch centered around the given pixel coordinates.
+
+     /** 
+        Returns a patch anchored on the given top-left corner.
 
         \tparam Flags Combination of flags for patch creation.
-        \tparam T Data-type of cv::Mat_
 
         \param m Underlying image
-        \param y y-coordinate of the patch center
-        \param x x-coordinate of the patch center
-        \param halfPatchSize Half the patch size. I.e for a 3x3 patch window, set this to 1.
-        \return Returns a view on the image that contains only the patch region.
-    */
-    template<int Flags, class T>
-    cv::Mat_<T> centeredPatch(const cv::Mat_<T> &m, int y, int x, int halfPatchSize) 
-    {
-        int width, height;
-
-        // Note, if's are compile time if's and will be optimized away.
-        if (Flags & PATCH_BOUNDS) {
-            const int topx = std::max<int>(x - halfPatchSize, 0);
-	        const int topy = std::max<int>(y - halfPatchSize, 0);
-	        const int bottomx = std::min<int>(x + halfPatchSize, m.cols - 1);
-            const int bottomy = std::min<int>(y + halfPatchSize, m.rows - 1);
-
-            x = topx;
-            y = topy;
-            width = bottomx - topx + 1;
-            height = bottomy - topy + 1;
-
-        } else {           
-            x -= halfPatchSize;
-            y -= halfPatchSize;
-            width = halfPatchSize * 2 + 1;
-            height = halfPatchSize * 2 + 1;
-        }
-
-        if (Flags & PATCH_REF) {
-            return m(cv::Rect(x, y, width, height));
-        } else {
-            T *start = const_cast<T*>(m.ptr<T>(y, x));
-            return cv::Mat_<T>(height, width, start, m.step);        
-        }
-    }
-
-    /** 
-        Returns a patch centered around the given pixel coordinates.
-
-        \tparam Flags Combination of flags for patch creation.
-        \tparam T Data-type of cv::Mat_
-
-        \param m Underlying image
-        \param y y-coordinate of the patch center
-        \param x x-coordinate of the patch center
-        \param halfPatchSize Half the patch size. I.e for a 3x3 patch window, set this to 1.
+        \param y y-coordinate of the patch top-left corner
+        \param x x-coordinate of the patch top-left corner
+        \param height height of patch (extension along y-axis)
+        \param width width of patch (extension along x-axis)
         \return Returns a view on the image that contains only the patch region.
     */
     template<int Flags>
-    cv::Mat centeredPatch(const cv::Mat &m, int y, int x, int halfPatchSize) 
+    cv::Mat topLeftPatch(const cv::Mat &m, int y, int x, int height, int width) 
     {
-        int width, height;
-
+        // Note, compile time if's, will be optimized away by compiler.
         if (Flags & PATCH_BOUNDS) {
-            const int topx = std::max<int>(x - halfPatchSize, 0);
-	        const int topy = std::max<int>(y - halfPatchSize, 0);
-	        const int bottomx = std::min<int>(x + halfPatchSize, m.cols - 1);
-            const int bottomy = std::min<int>(y + halfPatchSize, m.rows - 1);
+            int topx = clamp(x, 0, m.cols - 1);
+            int topy = clamp(y, 0, m.rows - 1);
+            width -= std::abs(topx - x);
+            height -= std::abs(topy - y);
 
+	        width = clamp(width, 0, m.cols - topx);
+            height = clamp(height, 0, m.rows - topy);            
             x = topx;
             y = topy;
-            width = bottomx - topx + 1;
-            height = bottomy - topy + 1;
-
-        } else {           
-            x -= halfPatchSize;
-            y -= halfPatchSize;
-            width = halfPatchSize * 2 + 1;
-            height = halfPatchSize * 2 + 1;
         }
 
         if (Flags & PATCH_REF) {
@@ -122,6 +72,36 @@ namespace Inpaint {
     }
 
     /** 
+        Returns a patch anchored on the given top-left corner.. 
+    */
+    inline cv::Mat topLeftPatch(const cv::Mat &m, int y, int x, int height, int width) 
+    {
+        return topLeftPatch<PATCH_FAST>(m, y, x, height, width);
+    }
+  
+    /** 
+        Returns a patch centered around the given pixel coordinates.
+
+        \tparam Flags Combination of flags for patch creation.
+
+        \param m Underlying image
+        \param y y-coordinate of the patch center
+        \param x x-coordinate of the patch center
+        \param halfPatchSize Half the patch size. I.e for a 3x3 patch window, set this to 1.
+        \return Returns a view on the image that contains only the patch region.
+    */
+    template<int Flags>
+    cv::Mat centeredPatch(const cv::Mat &m, int y, int x, int halfPatchSize) 
+    {
+        int width = 2 * halfPatchSize + 1;
+        int height = 2 * halfPatchSize + 1;
+        x -= halfPatchSize;
+        y -= halfPatchSize;
+
+        return topLeftPatch<Flags>(m, y, x, height, width);
+    }
+
+    /** 
         Returns a patch centered around the given pixel coordinates. 
     */
     inline cv::Mat centeredPatch(const cv::Mat &m, int y, int x, int halfPatchSize) 
@@ -130,16 +110,40 @@ namespace Inpaint {
     }
 
     /** 
-        Returns a patch centered around the given pixel coordinates.
-    */
-    template <class T>
-    cv::Mat_<T> centeredPatch(const cv::Mat_<T> &m, int y, int x, int halfPatchSize) 
+        Given two centered patches in two images compute the comparable region in both images as top-left patches. 
+        
+        \param a first image
+        \param b second image
+        \param ap center in first image
+        \param bp center in second image
+        \param halfPatchSize halfPatchSize Half the patch size. I.e for a 3x3 patch window, set this to 1.
+        \return Comparable rectangles for first, second image. Rectangles are of same size, but anchored top-left
+                with respect to the given center points.
+        */
+    inline std::pair<cv::Rect, cv::Rect> comparablePatchRegions(
+        const cv::Mat &a, const cv::Mat &b,
+        cv::Point ap, cv::Point bp, 
+        int halfPatchSize)
     {
-        return centeredPatch<PATCH_FAST>(m, y, x, halfPatchSize);
+        int left = maximum(-halfPatchSize, -ap.x, -bp.x);
+        int right = minimum(halfPatchSize + 1, -ap.x + a.cols, -bp.x + b.cols); 
+        int top = maximum(-halfPatchSize, -ap.y, -bp.y);
+        int bottom = minimum(halfPatchSize + 1, -ap.y + a.rows, -bp.y + b.rows); 
+
+        std::pair<cv::Rect, cv::Rect> p;
+
+        p.first.x = ap.x + left;
+        p.first.y = ap.y + top;
+        p.first.width = (right - left);
+        p.first.height = (bottom - top);
+
+        p.second.x = bp.x + left;
+        p.second.y = bp.y + top;
+        p.second.width = (right - left);
+        p.second.height = (bottom - top);
+
+        return p;
     }
-
-
-
     
 
 }
