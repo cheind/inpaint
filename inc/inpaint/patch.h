@@ -78,6 +78,14 @@ namespace Inpaint {
     {
         return topLeftPatch<PATCH_FAST>(m, y, x, height, width);
     }
+
+    /** 
+        Returns a patch anchored on the given top-left corner.. 
+    */
+    inline cv::Mat topLeftPatch(const cv::Mat &m, const cv::Rect &r) 
+    {
+        return topLeftPatch<PATCH_FAST>(m, r.y, r.x, r.height, r.width);
+    }
   
     /** 
         Returns a patch centered around the given pixel coordinates.
@@ -143,6 +151,13 @@ namespace Inpaint {
         p.second.height = (bottom - top);
 
         return p;
+    }
+
+    /** Test if patch goes across the boundary. */
+    inline bool isCenteredPatchCrossingBoundary(cv::Point p, int halfPatchSize, const cv::Mat &img)
+    {
+        return p.x < halfPatchSize || p.x >= img.cols - halfPatchSize ||
+               p.y < halfPatchSize || p.y >= img.rows - halfPatchSize;
     }
     
 

@@ -56,5 +56,17 @@ namespace Inpaint {
         return maximum(inclusiveMin, minimum(x, inclusiveMax));
     }
 
+    template<class T>
+    T clampLower(T x, T inclusiveMin)
+    {
+        return maximum(inclusiveMin, x);
+    }
+
+    template<class T>
+    T clampUpper(T x, T inclusiveMax)
+    {
+        return minimum(inclusiveMax, x);
+    }
+
 }
 #endif
