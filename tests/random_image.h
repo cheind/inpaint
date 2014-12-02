@@ -73,6 +73,15 @@ inline cv::Mat randomBlock(const cv::Mat &image, cv::Rect &r)
     r = cv::Rect(x1, y1, x2 - x1, y2 - y1);
     return image(r);
 }
+
+inline cv::Mat shiftImage(const cv::Mat &img, int y, int x)
+{
+    cv::Mat out = cv::Mat::zeros(img.size(), img.type());
+    img(cv::Rect(0,0,img.cols - x, img.rows - x)).copyTo(out(cv::Rect(x, y, img.cols - x, img.rows - x)));
+    return out;
+}
+    
+    
     
 
 #endif
