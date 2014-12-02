@@ -49,6 +49,7 @@ add_executable(inpaint_tests
     tests/integral.cpp
 	tests/criminisi_inpainter.cpp
     tests/template_match_candidates.cpp
+	tests/patch_match.cpp
 )
 target_link_libraries (inpaint_tests inpaint ${OpenCV_LIBRARIES})
 
