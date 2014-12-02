@@ -33,7 +33,8 @@ TEST_CASE("template-match-candidates")
     cv::Rect r;
     cv::Mat block = randomBlock(img, r);
 
-    cv::Mat candidates = findTemplateMatchCandidates(img, block, cv::Mat(), cv::Size(4,4), 0);
+    cv::Mat candidates;
+    findTemplateMatchCandidates(img, block, cv::Mat(), candidates, cv::Size(4,4), 0);
     REQUIRE(candidates.at<uchar>(r.tl()) != 0);
     REQUIRE(cv::countNonZero(candidates) < 20);
 }
