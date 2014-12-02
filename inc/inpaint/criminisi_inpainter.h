@@ -102,12 +102,30 @@ namespace Inpaint {
         UserSpecified _input;
 	
         TemplateMatchCandidates _tmc;
-	    cv::Mat _image;
+	    cv::Mat _image, _candidates;
 	    cv::Mat_<uchar> _targetRegion, _borderRegion, _sourceRegion;
 	    cv::Mat_<float> _isophoteX, _isophoteY, _confidence, _borderGradX, _borderGradY;
 	    int _halfPatchSize, _halfMatchSize;
 	    int _startX, _startY, _endX, _endY;
     };
+
+    /** 
+        Inpaint image.
+
+        Implementation of the exemplar based inpainting algorithm described in
+        "Object Removal by Exemplar-Based Inpainting", A. Criminisi et. al. 
+        
+        \param image Image to be inpainted. 
+        \param targetMask Region to be inpainted.
+        \param sourceMask Optional mask that specifies the region of the image to synthezise from. If left empty
+               the entire image without the target mask is used.
+        \param patchSize Patch size to use.
+    */
+    void inpaintCriminisi(
+        cv::InputArray image,
+        cv::InputArray targetMask,
+        cv::InputArray sourceMask,        
+        int patchSize);
 
 }
 #endif

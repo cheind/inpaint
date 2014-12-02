@@ -51,9 +51,6 @@ namespace Inpaint {
               template. Only those areas are considered during classification. A block is rejected
               from the decision process if not all its pixels are masked. If no mask is passed, all
               blocks are considered valid.
-
-            - A parameter called maxCandidates is introduced. Once maxCandidates are found, the
-              algorithm returns the set of candidates found so far.
     */
     class TemplateMatchCandidates {
     public:
@@ -74,13 +71,15 @@ namespace Inpaint {
 
             \param templ Template image.
             \param templMask Optional template mask.
+            \param candidates Computed candidates mask.
             \param maxWeakErrors Max classification mismatches per channel.
             \param maxMeanDifference Max difference of patch / template mean before rejecting a candidate.
             \return Candidate mask.
         */
-        cv::Mat findCandidates(
+        void findCandidates(
             const cv::Mat &templ, 
-            const cv::Mat &templMask = cv::Mat(), 
+            const cv::Mat &templMask, 
+            cv::Mat &candidates,
             int maxWeakErrors = 3, 
             float maxMeanDifference = 20);
 
@@ -118,7 +117,6 @@ namespace Inpaint {
         cv::Mat _image;
         std::vector< cv::Mat_<int> > _integrals;
         std::vector< cv::Rect > _blocks;
-        cv::Mat_<uchar> _candidates;
         cv::Size _templateSize;
         cv::Size _partitionSize;
     };
@@ -131,15 +129,17 @@ namespace Inpaint {
         \param image Image to search in
         \param templ Template image
         \param templMask Optional template mask
+        \param candidate A mask of possible candidates. If image size is W,H and template size is w,h
+               the size of candidate will be W - w + 1, H - h + 1.
         \param partitionSize Number of blocks to subdivide template into
         \param maxWeakErrors Max classification mismatches per channel.
         \param maxMeanDifference Max difference of patch / template mean before rejecting a candidate.
-        \return Candidate mask
     */
-    cv::Mat findTemplateMatchCandidates(
-        const cv::Mat &image,
-        const cv::Mat &templ,
-        const cv::Mat &templMask = cv::Mat(),
+    void findTemplateMatchCandidates(
+        cv::InputArray image,
+        cv::InputArray templ,
+        cv::InputArray templMask,
+        cv::OutputArray candidates,
         cv::Size partitionSize = cv::Size(3,3),
         int maxWeakErrors = 3, 
         float maxMeanDifference = 20);

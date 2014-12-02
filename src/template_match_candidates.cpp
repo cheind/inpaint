@@ -58,27 +58,26 @@ namespace Inpaint {
         
         _blocks.clear();
         computeBlockRects(_templateSize, _partitionSize, _blocks);
-
-        _candidates.create(
-            _image.rows - _templateSize.height + 1, 
-            _image.cols - _templateSize.width + 1);
     }
 
 
-    cv::Mat TemplateMatchCandidates::findCandidates(
+    void TemplateMatchCandidates::findCandidates(
         const cv::Mat &templ, 
         const cv::Mat &templMask, 
+        cv::Mat &candidates,
         int maxWeakErrors, 
         float maxMeanDifference)
     {
         CV_Assert(
-            templ.channels() == _integrals.size() &&
-            templ.depth() == CV_8U &&
+            templ.type() == CV_MAKETYPE(CV_8U, _integrals.size()) &&
             templ.size() == _templateSize && 
-            (templMask.empty() || templMask.size() == _templateSize)
-        );
+            (templMask.empty() || templMask.size() == _templateSize));
 
-        _candidates.setTo(255);
+        candidates.create(
+            _image.size().height - templ.size().height + 1, 
+            _image.size().width - templ.size().width + 1,            
+            CV_8UC1);
+        candidates.setTo(255);
 
         std::vector< cv::Rect > blocks = _blocks;
         removeInvalidBlocks(templMask, blocks);
@@ -94,11 +93,11 @@ namespace Inpaint {
             const int *referenceClassRow = referenceClass.ptr<int>(i);
 
             // For all template positions ty, tx (top-left template position)
-            for (int ty = 0; ty < _candidates.rows; ++ty) 
+            for (int ty = 0; ty < candidates.rows; ++ty) 
             {
-                uchar *outputRow = _candidates.ptr<uchar>(ty);
+                uchar *outputRow = candidates.ptr<uchar>(ty);
 
-                for (int tx = 0; tx < _candidates.cols; ++tx) 
+                for (int tx = 0; tx < candidates.cols; ++tx) 
                 {
                     if (!outputRow[tx])
                         continue;
@@ -115,8 +114,6 @@ namespace Inpaint {
                 }
             }
         }
-
-        return _candidates;
     }
 
     void TemplateMatchCandidates::weakClassifiersForTemplate(
@@ -223,21 +220,27 @@ namespace Inpaint {
     }
 
 
-    cv::Mat findTemplateMatchCandidates(
-        const cv::Mat &image,
-        const cv::Mat &templ,
-        const cv::Mat &templMask,
+    void findTemplateMatchCandidates(
+        cv::InputArray image,
+        cv::InputArray templ,
+        cv::InputArray templMask,
+        cv::OutputArray candidates,
         cv::Size partitionSize,
         int maxWeakErrors, 
         float maxMeanDifference)
     {
         TemplateMatchCandidates tmc;
-        tmc.setSourceImage(image);
+        tmc.setSourceImage(image.getMat());
         tmc.setPartitionSize(partitionSize);
         tmc.setTemplateSize(templ.size());
         tmc.initialize();
 
-        return tmc.findCandidates(templ, templMask, maxWeakErrors, maxMeanDifference);
+        candidates.create(
+            image.size().height - templ.size().height + 1, 
+            image.size().width - templ.size().width + 1,            
+            CV_8UC1);
+
+        tmc.findCandidates(templ.getMat(), templMask.getMat(), candidates.getMat(), maxWeakErrors, maxMeanDifference);
     }
 
 }

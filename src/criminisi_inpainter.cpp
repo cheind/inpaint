@@ -242,20 +242,17 @@ namespace Inpaint {
 
         cv::Mat_<cv::Vec3b> targetImagePatch = centeredPatch<PATCHFLAGS>(_image, targetPatchLocation.y, targetPatchLocation.x, _halfMatchSize);
 	    cv::Mat_<uchar> targetMask = centeredPatch<PATCHFLAGS>(_targetRegion, targetPatchLocation.y, targetPatchLocation.x, _halfMatchSize);
-
-        Timer t;
-        
+      
         cv::Mat invTargetMask = (targetMask == 0);
-        cv::Mat candidates;
         if (useCandidateFilter)
-            candidates = _tmc.findCandidates(targetImagePatch, invTargetMask, 3, 10);
+            _tmc.findCandidates(targetImagePatch, invTargetMask, _candidates, 3, 10);
         
         int count = 0;
         for (int y = _startY; y < _endY; ++y) {
 		    for (int x = _startX; x < _endX; ++x) {
 			    
                 // Note, candidates need to be corrected. Centered patch locations used here, top-left used with candidates.
-                const bool shouldTest = (!useCandidateFilter || candidates.at<uchar>(y - _halfMatchSize, x - _halfMatchSize)) &&
+                const bool shouldTest = (!useCandidateFilter || _candidates.at<uchar>(y - _halfMatchSize, x - _halfMatchSize)) &&
                                          _sourceRegion.at<uchar>(y, x) > 0;
 
                 if (shouldTest) {
@@ -272,8 +269,6 @@ namespace Inpaint {
                 }
 		    }
 	    }
-
-        std::cout << t.measure() * 1000  << " " << count << " of " << ((_endY-_startY)*(_endX-_startX))<<  std::endl;
 
 	    return bestLocation;
     }
@@ -300,4 +295,22 @@ namespace Inpaint {
 	    copyMask.setTo(0);
     }
 
+
+    void inpaintCriminisi(
+        cv::InputArray image,
+        cv::InputArray targetMask,
+        cv::InputArray sourceMask,        
+        int patchSize)
+    {
+        CriminisiInpainter ci;
+        ci.setSourceImage(image.getMat());
+        ci.setSourceMask(sourceMask.getMat());
+        ci.setTargetMask(targetMask.getMat());
+        ci.setPatchSize(patchSize);
+        ci.initialize();
+        
+        while (ci.hasMoreSteps()) {
+            ci.step();
+        }
+    }
 }
