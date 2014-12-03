@@ -18,7 +18,7 @@
 */
 
 #include "catch.hpp"
-#include "random_image.h"
+#include "random_testdata.h"
 
 #include <inpaint/pyramid.h>
 

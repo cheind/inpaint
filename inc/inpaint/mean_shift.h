@@ -31,28 +31,29 @@ namespace Inpaint {
         "Mean Shift: A Robust Approach toward Feature Space Analysis" D. Comaniciu et al.
 
         Changes made by the author with respect to the original paper:
-            - in order to avoid local maxima (saddle points), converged cluster centers
+            - in order to avoid local maxima (saddle points), potentially converged cluster centers
               are perturbated by a fraction of the bandwidth. When the point converges
-              again to the same cluster center, the center value is said to be final.
+              again to the same cluster center, the cluster center to be converged.
 
             - if no seeds are provided, the method bins the features in a grid of grid-size
               equal to bandwidth. Seeds will then be placed in bins with at least on element
               in them.
 
-        \param features Matrix of features. One feature per row. Required depth: CV_32F.
-        \param seeds Optional matrix of seeds to use. One seed per row. Required depth: CV_32F. If omitted, binning is used
-                     to generate seeds.
-        \param weights Optional matrix of weights to apply to features. Required type: CV_32FC1 of size 1 x number of features.
-        \param centers Cluster centers. Depth: CV_32F.
-        \param labels Feature-to-cluster lables if required. Type: CV_32SC1.
-        \param distances Feature-to-cluster distances based on L2 norm if required. Type: CV_32FC1.
+        \param features Matrix of features. Features in rows. CV_32FC1
+        \param seeds Optional matrix of seeds to use. One seed per row. If omitted, binning is used to generate seeds. CV_32FC1
+        \param weights Optional matrix of weights to apply to features. CV_32FC1 of size 1 x number of features.
+        \param centers Cluster centers. CV_32FC1. Centers in rows.
+        \param labels Feature-to-cluster labels if required. CV_32SC1 of size 1 x number of features.
+        \param distances Feature-to-cluster distances based on L2 norm if required. CV_32FC1 of size 1 x number of features.
         \param bandwidth Fixed radius during iteration.
         \param maxIteration No more iterations per seed will be performed.
         \param perturbate When seeds converge, perturbate them to see if they converge back to the same spot.
+        \param mergeClusters Merge all cluster centers that are closer than bandwidth.
+
         */      void meanShift(
         cv::InputArray features, cv::InputArray seeds, cv::InputArray weights, 
         cv::OutputArray centers, cv::OutputArray labels, cv::OutputArray distances,     
-        float bandwidth, int maxIteration = 200, bool perturbate = true);
+        float bandwidth, int maxIteration = 200, bool perturbate = true, bool mergeClusters = true);
 
    
 

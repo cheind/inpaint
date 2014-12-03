@@ -17,8 +17,8 @@
    along with Inpaint.  If not, see <http://www.gnu.org/licenses/>.
 */
 
-#ifndef INPAINT_RANDOM_IMAGE_H
-#define INPAINT_RANDOM_IMAGE_H
+#ifndef INPAINT_RANDOM_TESTDATA_H
+#define INPAINT_RANDOM_TESTDATA_H
 
 #include <opencv2/opencv.hpp>
 
@@ -81,7 +81,52 @@ inline cv::Mat shiftImage(const cv::Mat &img, int y, int x)
     return out;
 }
     
-    
+inline void randomGaussianBlobs(
+    int blobs, // Not used if centers is provided.
+    int samplesPerBlob, 
+    int dimensions,     
+    float clusterStdDev,
+    cv::InputOutputArray centers_, cv::OutputArray features_, cv::OutputArray labels_,
+    float minPosCenter = -20, float maxPosCenter = 20.f,
+    uint64 randomSeed = cv::getTickCount())
+{
+
+    cv::Mat centers(blobs, dimensions, CV_64FC1);
+    cv::Mat features(samplesPerBlob*blobs, dimensions, CV_64FC1);
+    cv::Mat labels(1, samplesPerBlob*blobs, CV_32SC1);
+
+    bool haveCenters = true;
+    if (centers_.empty()) {
+        haveCenters = false;        
+    } else {
+        centers_.getMat().convertTo(centers, CV_64FC1);        
+    }
+
+    cv::theRNG().state = randomSeed;
+
+    int findex = 0;
+    for (int i = 0; i < blobs; ++i) {
+        if (!haveCenters) {
+            cv::randu(centers.row(i), minPosCenter, maxPosCenter);
+        }
+        for (int f = 0; f < samplesPerBlob; ++f) {
+            cv::randn(features.row(findex), 0, clusterStdDev);
+            features.row(findex) += centers.row(i);
+            labels.at<int>(0, findex) = i;
+            ++findex;
+        }
+    }
+
+    centers_.create(blobs, dimensions, CV_32FC1);
+    centers.convertTo(centers_.getMat(), CV_32FC1);
+
+    features_.create(samplesPerBlob*blobs, dimensions, CV_32FC1);
+    features.convertTo(features_.getMat(), CV_32FC1);
+
+    labels_.create(1, samplesPerBlob*blobs, CV_32SC1);
+    labels.copyTo(labels_.getMat());
+
+}
     
 
 #endif

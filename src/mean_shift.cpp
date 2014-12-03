@@ -102,10 +102,6 @@ namespace Inpaint {
         cv::flann::Index index(features, params);
          
         const double stopThreshold = bandwidth / 1000.0;
-        cv::Mat_<float> lowerPerturbationRange(1, seeds.cols), upperPerturbationRange(1, seeds.cols); 
-        lowerPerturbationRange.setTo(-bandwidth / 2);
-        upperPerturbationRange.setTo(bandwidth / 2);
-
         // Could easily parallelize this outer loop 
         for(int seedId = 0; seedId < seeds.rows; ++seedId) {
 
@@ -155,7 +151,7 @@ namespace Inpaint {
                         break;
                     } else if (perturbate) {
                         seed.copyTo(seedWhenPerturbationStarted);
-                        rng.fill(perturbationVector, cv::RNG::UNIFORM, lowerPerturbationRange, upperPerturbationRange);
+                        rng.fill(perturbationVector, cv::RNG::UNIFORM, -bandwidth / 2, bandwidth / 2);
                         seed += perturbationVector;
                         wasPerturbated = true;
                     }
@@ -168,7 +164,7 @@ namespace Inpaint {
         }
     }
 
-    void mergeClusters(cv::Mat clusters, cv::Mat supports, float bandwidth)
+    void mergeClusterCenters(cv::Mat clusters, cv::Mat supports, float bandwidth)
     {
         std::vector<bool> keep(clusters.rows, true);
 
@@ -247,10 +243,10 @@ namespace Inpaint {
     void meanShift(
         cv::InputArray features_, cv::InputArray seeds_, cv::InputArray weights_, 
         cv::OutputArray centers_, cv::OutputArray labels_, cv::OutputArray distances_,   
-        float bandwidth, int maxIterations, bool perturbate)
+        float bandwidth, int maxIterations, bool perturbate, bool mergeClusters)
     {
         CV_Assert(
-            features_.type() == CV_MAKETYPE(1, CV_32F) &&
+            features_.type() == CV_MAKETYPE(CV_32F, 1) &&
             maxIterations > 0);
 
         cv::Mat features = features_.getMat();
@@ -285,8 +281,10 @@ namespace Inpaint {
         cv::Mat supports(1, seeds.rows, CV_32SC1);
         performMeanShift(features, seeds, supports, weights, bandwidth, maxIterations, perturbate);
 
-        // Merge clusters that are too close.
-        mergeClusters(seeds, supports, bandwidth);
+        if (mergeClusters) {
+            mergeClusterCenters(seeds, supports, bandwidth);
+        }
+
         if (centers_.needed()) {
             centers_.create(seeds.size(), CV_32FC1);
             seeds.copyTo(centers_.getMat());
@@ -294,9 +292,24 @@ namespace Inpaint {
 
         // Assign labels to features if required.
         if (labels_.needed() || distances_.needed()) {
-            labels_.create(1, features.rows, CV_32SC1);
-            distances_.create(1, features.rows, CV_32FC1);
-            assignFeaturesToClusters(features, seeds, labels_.getMat(), distances_.getMat());
+
+            cv::Mat labels;
+            if (labels_.needed()) {
+                labels_.create(1, features.rows, CV_32SC1);
+                labels = labels_.getMat();
+            } else {
+                labels.create(1, features.rows, CV_32SC1);
+            }
+
+            cv::Mat distances;
+            if (distances_.needed()) {
+                distances_.create(1, features.rows, CV_32FC1);
+                distances = distances_.getMat();
+            } else {
+                distances.create(1, features.rows, CV_32FC1);
+            }
+
+            assignFeaturesToClusters(features, seeds, labels, distances);
         }
     }
 }

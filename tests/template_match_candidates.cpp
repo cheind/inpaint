@@ -18,7 +18,7 @@
 */
 
 #include "catch.hpp"
-#include "random_image.h"
+#include "random_testdata.h"
 
 #include <inpaint/template_match_candidates.h>
 #include <opencv2/opencv.hpp>
