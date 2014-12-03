@@ -57,7 +57,7 @@ namespace Inpaint {
 
     cv::Mat CriminisiInpainter::image() const
     {
-	    return _image.clone();
+	    return _image;
     }
 
     cv::Mat CriminisiInpainter::targetRegion() const
@@ -312,5 +312,7 @@ namespace Inpaint {
         while (ci.hasMoreSteps()) {
             ci.step();
         }
+
+        ci.image().copyTo(image.getMat());
     }
 }
