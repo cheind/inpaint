@@ -284,7 +284,7 @@ namespace Inpaint {
     void patchMatch(
         cv::InputArray &source_, 
         cv::InputArray &target_, cv::InputArray &targetMask_, 
-        cv::OutputArray &corrs_, cv::OutputArray &distances_,
+        cv::InputOutputArray &corrs_, cv::InputOutputArray &distances_,
         int halfPatchSize,
         int iterations,
         int normType)
