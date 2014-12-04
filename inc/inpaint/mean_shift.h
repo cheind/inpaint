@@ -44,16 +44,17 @@ namespace Inpaint {
         \param weights Optional matrix of weights to apply to features. CV_32FC1 of size 1 x number of features.
         \param centers Cluster centers. CV_32FC1. Centers in rows.
         \param labels Feature-to-cluster labels if required. CV_32SC1 of size 1 x number of features.
-        \param distances Feature-to-cluster distances based on L2 norm if required. CV_32FC1 of size 1 x number of features.
+        \param distances Feature-to-cluster squared distances based on L2 norm if required. CV_32FC1 of size 1 x number of features.
         \param bandwidth Fixed radius during iteration.
         \param maxIteration No more iterations per seed will be performed.
         \param perturbate When seeds converge, perturbate them to see if they converge back to the same spot.
         \param mergeClusters Merge all cluster centers that are closer than bandwidth.
+        \param sortClusters Sort clusters descending based on probability modes in descending order.
 
         */      void meanShift(
         cv::InputArray features, cv::InputArray seeds, cv::InputArray weights, 
         cv::OutputArray centers, cv::OutputArray labels, cv::OutputArray distances,     
-        float bandwidth, int maxIteration = 200, bool perturbate = true, bool mergeClusters = true);
+        float bandwidth, int maxIteration = 200, bool perturbate = true, bool mergeClusters = true, bool sortClusters = true);
 
    
 

@@ -32,24 +32,33 @@ TEST_CASE("mean-shift")
 
    cv::Mat_<float> features;
    cv::Mat_<int> labels;
+   randomGaussianBlobs(3, 20, 2, 0.4f, centers, features, labels, -10.f, 10.f);
 
-   randomGaussianBlobs(3, 100, 2, 0.4f, centers, features, labels, -10.f, 10.f);
-
-   std::cout << "init ok" << std::endl;
    cv::Mat_<float> msCenters;
    cv::Mat_<int> msLabels;
-   meanShift(features, cv::noArray(), cv::noArray(), msCenters, msLabels, cv::noArray(), 1.2f, 300);
+   
+   // We use weights here just for the purpose implicitly sort the cluster results
+   // the same way we provide the inputs.
+   cv::Mat_<float> msWeights(1, features.rows);
+   msWeights.colRange(0, 20).setTo(2);
+   msWeights.colRange(20, 40).setTo(1);
+   msWeights.colRange(40, 60).setTo(0.5);
 
-   /*
-   ms = MeanShift(bandwidth=bandwidth)
-    labels = ms.fit(X).labels_
-    cluster_centers = ms.cluster_centers_
-    labels_unique = np.unique(labels)
-    n_clusters_ = len(labels_unique)
-    assert_equal(n_clusters_, n_clusters)
+   // Note, 300 iterations are way too much, 5-10 suffice. Tests binning as well.
+   meanShift(features, cv::noArray(), msWeights, msCenters, msLabels, cv::noArray(), 1.2f, 300);
 
-    cluster_centers, labels = mean_shift(X, bandwidth=bandwidth)
-    labels_unique = np.unique(labels)
-    n_clusters_ = len(labels_unique)
-    assert_equal(n_clusters_, n_clusters)*/
+   REQUIRE(msCenters.rows == 3);
+   REQUIRE(cv::norm(centers, msCenters) < 1);
+   REQUIRE(cv::countNonZero(msLabels == 0) == 20);
+   REQUIRE(cv::countNonZero(msLabels == 1) == 20);
+   REQUIRE(cv::countNonZero(msLabels == 2) == 20);
+
+   // Run again, but provide just one center;
+   cv::Mat_<float> oneCenter(1, 2);
+   oneCenter << 12, 12;
+   meanShift(features, oneCenter, msWeights, msCenters, msLabels, cv::noArray(), 3.0f, 300);
+
+   REQUIRE(msCenters.rows == 1);
+   REQUIRE(cv::norm(centers.row(0), msCenters) < 1);
+
 }

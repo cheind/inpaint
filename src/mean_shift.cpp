@@ -78,7 +78,7 @@ namespace Inpaint {
         cv::Mat_<int> bin;
         for (int y = 0; y < features.rows; ++y) {
             toBin(features.row(y), bin, bandwidth);
-            bs.insert(bin);
+            bs.insert(bin.clone());
         }
 
 
@@ -116,26 +116,27 @@ namespace Inpaint {
             
             bool wasPerturbated = false;            
             int iter = 0;
-            int support = 0;
+            int nnbrs = 0;
+            float weightSum = 0;
 
             while (iter < maxIterations)
             {
-                support = index.radiusSearch(seed, nbrs, dists, bandwidth, nbrs.cols);
-                if (support == 0)
+                weightSum = 0;
+                nnbrs = index.radiusSearch(seed, nbrs, dists, bandwidth * bandwidth, nbrs.cols);
+                if (nnbrs == 0)
                     break;
 
                 seed.copyTo(oldSeed);
+                seed.setTo(0);
 
                 // Compute new mean
-                seed.setTo(0);
-                float wSum = 0;
-                for (int nbr = 0; nbr < support; ++nbr) {
+                for (int nbr = 0; nbr < nnbrs; ++nbr) {
                     int nbrId = nbrs(0, nbr);
                     const float w = weights.at<float>(0, nbrId);
                     seed += (features.row(nbrId) * w);
-                    wSum += w;
+                    weightSum += w;
                 }
-                seed /= wSum;
+                seed /= weightSum;
 
                 // Test for convergence
                 if (cv::norm(seed, oldSeed) < stopThreshold) {
@@ -144,7 +145,7 @@ namespace Inpaint {
                     // or new seed is close to position when perturbation started.
 
                     if (!perturbate || 
-                       (maxIterations - iter < 10) || 
+                       ((maxIterations - iter) < 10) || 
                        (wasPerturbated && cv::norm(seed, seedWhenPerturbationStarted) < stopThreshold)) 
                     {
                         // done
@@ -160,11 +161,11 @@ namespace Inpaint {
                 ++iter;
             }
 
-            supports.at<int>(0, seedId) = support;
+            supports.at<float>(0, seedId) = weightSum;
         }
     }
 
-    void mergeClusterCenters(cv::Mat clusters, cv::Mat supports, float bandwidth)
+    void mergeClusterCenters(cv::Mat &clusters, cv::Mat supports, float bandwidth)
     {
         std::vector<bool> keep(clusters.rows, true);
 
@@ -177,8 +178,8 @@ namespace Inpaint {
         // Basic procedure: For each cluster, find its nearest neighbor. If the nearest neighbor is within the bandwidth,
         // merge (weighted average, weight = support) the two clusters.
 
-        cv::Mat_<int> nbr(1, 1);
-        cv::Mat_<float> dists(1, 1);
+        cv::Mat_<int> nbr(1, clusters.rows);
+        cv::Mat_<float> dists(1, clusters.rows);
         cv::Mat average(1, clusters.cols, CV_32FC1);
 
         for (int c = 0; c < clusters.rows; ++c) {
@@ -187,22 +188,12 @@ namespace Inpaint {
 
             cv::Mat cl = clusters.row(c);
             
-            index.knnSearch(cl, nbr, dists, 1);
-            if (dists.at<float>(0,0) < bandwidth) {
-                float sumWeights = 0;
-                average.setTo(0);
-                
-                float w = (float)supports.at<int>(0, c);
-                average += (cl * w);
-                sumWeights += w;
+            // Note: this search finds ourself as well.
+            int found = index.radiusSearch(cl, nbr, dists, bandwidth * bandwidth, clusters.rows);
 
-                int otherId = nbr.at<int>(0,0);
-                w = (float)supports.at<int>(0, otherId);
-                average += (clusters.row(otherId) * w);
-                sumWeights += w;
-
-                average /= sumWeights;
-                keep[otherId] = false;
+            for (int i = 0; i < found; ++i) {
+                int otherId = nbr.at<int>(0,i);
+                keep[otherId] = (otherId == c) ? true : false;
             }
         }
 
@@ -243,7 +234,7 @@ namespace Inpaint {
     void meanShift(
         cv::InputArray features_, cv::InputArray seeds_, cv::InputArray weights_, 
         cv::OutputArray centers_, cv::OutputArray labels_, cv::OutputArray distances_,   
-        float bandwidth, int maxIterations, bool perturbate, bool mergeClusters)
+        float bandwidth, int maxIterations, bool perturbate, bool mergeClusters, bool sortClusters)
     {
         CV_Assert(
             features_.type() == CV_MAKETYPE(CV_32F, 1) &&
@@ -256,7 +247,7 @@ namespace Inpaint {
         // Deal with seeds
         if (!seeds_.empty()) {
             CV_Assert(
-                seeds_.type() == CV_MAKETYPE(1, CV_32F) &&
+                seeds_.type() == CV_MAKETYPE(CV_32F, 1) &&
                 seeds_.cols() == features_.cols());
 
             seeds = seeds_.getMat().clone();
@@ -268,7 +259,7 @@ namespace Inpaint {
         // Deal with weights
         if (!weights_.empty()) {
             CV_Assert(
-                weights_.type() == CV_MAKETYPE(1, CV_32F) &&
+                weights_.type() == CV_MAKETYPE(CV_32F, 1) &&
                 weights_.cols() == features_.rows());
 
             weights = weights_.getMat();
@@ -278,18 +269,36 @@ namespace Inpaint {
         }
 
         // Run mean-shift
-        cv::Mat supports(1, seeds.rows, CV_32SC1);
+        cv::Mat supports(1, seeds.rows, CV_32FC1);
         performMeanShift(features, seeds, supports, weights, bandwidth, maxIterations, perturbate);
+
+        if (mergeClusters || sortClusters) {
+            // Need to sort clusters
+            cv::Mat idx;
+            cv::sortIdx(supports, idx, cv::SORT_EVERY_ROW | cv::SORT_DESCENDING);
+
+            cv::Mat sortedClusters(seeds.size(), seeds.type());
+            cv::Mat sortedSupports(supports.size(), supports.type());
+
+            for (int i = 0; i < idx.cols; ++i) {
+                seeds.row(idx.at<int>(0,i)).copyTo(sortedClusters.row(i));
+                supports.col(idx.at<int>(0,i)).copyTo(sortedSupports.col(i));
+            }
+
+            sortedClusters.copyTo(seeds);
+            sortedSupports.copyTo(supports);
+        }
 
         if (mergeClusters) {
             mergeClusterCenters(seeds, supports, bandwidth);
         }
-
+        
         if (centers_.needed()) {
             centers_.create(seeds.size(), CV_32FC1);
             seeds.copyTo(centers_.getMat());
         }
 
+        
         // Assign labels to features if required.
         if (labels_.needed() || distances_.needed()) {
 
