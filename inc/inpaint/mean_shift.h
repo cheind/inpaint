@@ -25,7 +25,9 @@
 namespace Inpaint {
     
     /** 
-        Non-parametric clustering using mean-shift and a flat kernel.
+        Non-parametric clustering using mean-shift and a flat kernel. 
+        
+        Besides clustering this method can also be used for robust mean estimation.
 
         Implementation is based on
         "Mean Shift: A Robust Approach toward Feature Space Analysis" D. Comaniciu et al.
@@ -39,12 +41,14 @@ namespace Inpaint {
               equal to bandwidth. Seeds will then be placed in bins with at least on element
               in them.
 
-        \param features Matrix of features. Features in rows. CV_32FC1
-        \param seeds Optional matrix of seeds to use. One seed per row. If omitted, binning is used to generate seeds. CV_32FC1
-        \param weights Optional matrix of weights to apply to features. CV_32FC1 of size 1 x number of features.
-        \param centers Cluster centers. CV_32FC1. Centers in rows.
-        \param labels Feature-to-cluster labels if required. CV_32SC1 of size 1 x number of features.
-        \param distances Feature-to-cluster squared distances based on L2 norm if required. CV_32FC1 of size 1 x number of features.
+        \param features Matrix of features of size num-features x num-dims and type CV_32FC1.     
+        \param seeds Optional matrix of seeds of size num-seeds x num-dims and type CV_32FC1. 
+               If omitted, binning is used to generate seed points.
+        \param weights Optional matrix of feature weights of size 1 x num-features and type CV_32FC1.
+        \param centers Cluster means matrix of size num-clusters-found x num-dims and type CV_32FC1.
+        \param labels Optionally computed feature-to-cluster label matrix of size 1 x num-features and type CV_32SC1.
+        \param distances Optionally computed feature-to-cluster squared L2 distance matrix of size 1 x num-features and 
+               type CV_32FC1.
         \param bandwidth Fixed radius during iteration.
         \param maxIteration No more iterations per seed will be performed.
         \param perturbate When seeds converge, perturbate them to see if they converge back to the same spot.
