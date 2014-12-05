@@ -70,3 +70,23 @@ TEST_CASE("patch-match-mask")
     REQUIRE(noneInside);
 
 }
+
+TEST_CASE("patch-match-subwindow-as-source")
+{
+    cv::Mat img = randomLinesImage(200, 60);
+    cv::Mat subimg = centeredPatch(img, 40, 40, 30);
+
+    cv::Mat corrs, distances;
+    patchMatch(subimg, img, cv::noArray(), corrs, distances, 10, 10);
+
+    cv::Mat reconstructed(subimg.size(), CV_8UC1);
+    for (int y = 0; y < reconstructed.rows; ++y) {
+        for (int x = 0; x < reconstructed.cols; ++x) {
+            cv::Vec2i corr = corrs.at<cv::Vec2i>(y, x);
+            reconstructed.at<uchar>(y,x) = img.at<uchar>(corr[1], corr[0]);
+        }
+    }
+
+    // Borders are incorrect because less pixels to test.
+    REQUIRE(cv::norm(subimg(cv::Rect(10, 10, 50, 50)), reconstructed(cv::Rect(10, 10, 50, 50))) < 100);
+}

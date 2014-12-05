@@ -63,30 +63,76 @@ namespace Inpaint {
         int _normType;
     };
 
-    
     template<class Distance>
-    inline void patchMatchPropagate(
+    inline void patchMatchPropagateForward(
         cv::Mat source, cv::Mat target, cv::Mat targetMask,
         cv::Mat corrs, cv::Mat distances,
         int halfPatchSize,
-        const Distance &distance,
-        bool forward)
+        const Distance &distance)
     {
-        // When forward we look at left and up neighbor, on backward we try to propagate from right and down.
-        // For best performance forward iteration is performed from top/left to bottom/right and backward vice versa.
+        // When forward we look at left and up neighbor
 
-        const cv::Vec2i offsets = forward ? cv::Vec2i(-1, -1) : cv::Vec2i(1, 1);
-        const int yStart = forward ? 1 : 0;
-        const int yEnd = forward ? source.rows : source.rows - 1;
-        const int xStart = forward ? 1 : 0;
-        const int xEnd = forward ? source.cols : source.cols - 1;
-
-        for (int y = yStart; y < yEnd; y++) {
+        const cv::Vec2i offsets = cv::Vec2i(-1, -1);
+        for (int y = 1; y < source.rows; y++) {
             cv::Vec2i *corrsRow = corrs.ptr<cv::Vec2i>(y);
             const cv::Vec2i *corrsRowOther = corrs.ptr<cv::Vec2i>(y + offsets[1]);
 
             double *distancesRow = distances.ptr<double>(y);
-            for (int x = xStart; x < xEnd; x++) {
+            for (int x = 1; x < source.cols; x++) {
+                
+                // In the serial version we don't propagate self. So if we already have an optimum we keep it.
+                if (distancesRow[x] == 0)
+                    continue;
+
+                cv::Point curPos(x, y);
+                cv::Vec2i bestCorr = corrsRow[x];
+                double bestDist = distancesRow[x];
+
+                cv::Vec2i nCorrX = corrsRow[x + offsets[0]] + cv::Vec2i(-offsets[0], 0);
+                double d = distance(
+                    source, target, targetMask,
+                    curPos, nCorrX,
+                    halfPatchSize);
+
+                if (d < bestDist) {
+                    bestDist = d;
+                    bestCorr = nCorrX;
+                }
+
+                cv::Vec2i nCorrY = corrsRowOther[x] + cv::Vec2i(0, -offsets[1]);
+                d = distance(
+                    source, target, targetMask,
+                    curPos, nCorrY,
+                    halfPatchSize);
+
+                if (d < bestDist) {
+                    bestDist = d;
+                    bestCorr = nCorrY;
+                }
+
+                distancesRow[x] = bestDist;
+                corrsRow[x] = bestCorr;
+            }
+        }
+    }
+
+    
+    template<class Distance>
+    inline void patchMatchPropagateBackward(
+        cv::Mat source, cv::Mat target, cv::Mat targetMask,
+        cv::Mat corrs, cv::Mat distances,
+        int halfPatchSize,
+        const Distance &distance)
+    {
+        // Backward we try to propagate from right and down.
+        
+        const cv::Vec2i offsets = cv::Vec2i(1, 1);
+        for (int y = source.rows - 2; y >= 0; --y) {
+            cv::Vec2i *corrsRow = corrs.ptr<cv::Vec2i>(y);
+            const cv::Vec2i *corrsRowOther = corrs.ptr<cv::Vec2i>(y + offsets[1]);
+
+            double *distancesRow = distances.ptr<double>(y);
+            for (int x = source.cols - 2; x >= 0; --x) {
                 
                 // In the serial version we don't propagate self. So if we already have an optimum we keep it.
                 if (distancesRow[x] == 0)
@@ -192,7 +238,11 @@ namespace Inpaint {
         const Distance &d, bool forward,
         double alpha, int maxRadius)
     {
-        patchMatchPropagate(source, target, targetMask, corrs, distances, halfPatchSize, d, forward);
+        if (forward) {
+            patchMatchPropagateForward(source, target, targetMask, corrs, distances, halfPatchSize, d);
+        } else {
+            patchMatchPropagateBackward(source, target, targetMask, corrs, distances, halfPatchSize, d);
+        }
         patchMatchExponentialSearch(source, target, targetMask, corrs, distances, halfPatchSize, d, alpha, maxRadius);
     }
 
