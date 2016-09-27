@@ -43,7 +43,6 @@ target_link_libraries(patch_match inpaint ${OpenCV_LIBRARIES})
 include_directories("tests")
 add_executable(inpaint_tests 
 	tests/catch.hpp
-	tests/random_image.h
 	tests/gradient.cpp
 	tests/patch.cpp
     tests/integral.cpp
