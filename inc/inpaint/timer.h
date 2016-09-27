@@ -20,7 +20,7 @@
 #ifndef INPAINT_TIMER_H
 #define INPAINT_TIMER_H
 
-#include <opencv2/core/utility.hpp>
+#include <opencv2/core/core.hpp>
 
 namespace Inpaint {
 
