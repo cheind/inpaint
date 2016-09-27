@@ -30,6 +30,7 @@ struct ImageInfo {
 	bool leftMouseDown;
     bool rightMouseDown;
 	int patchSize;
+    int stencilSize;
 };
 
 void onMouse(int eventType, int x, int y, int flags, void* data)
@@ -50,7 +51,7 @@ void onMouse(int eventType, int x, int y, int flags, void* data)
     cv::Mat &mask = ii.leftMouseDown ? ii.targetMask : ii.sourceMask;
     cv::Scalar color = ii.leftMouseDown ? cv::Scalar(0,250,0) : cv::Scalar(0,250,250);
     
-    cv::circle(mask, cv::Point(x, y), ii.displayImage.rows / 40, cv::Scalar(255), -1);
+    cv::circle(mask, cv::Point(x, y), ii.stencilSize, cv::Scalar(255), -1);
 	ii.displayImage.setTo(color, mask);	    
     cv::imshow("Image Inpaint", ii.displayImage);
 }
@@ -69,6 +70,7 @@ int main(int argc, char **argv)
 	ii.leftMouseDown = false;
     ii.rightMouseDown = false;
 	ii.patchSize = 9;
+    ii.stencilSize = inputImage.rows / 40;
 
 	ii.image = inputImage.clone();
 	ii.displayImage = ii.image.clone();
@@ -80,6 +82,7 @@ int main(int argc, char **argv)
 	cv::namedWindow("Image Inpaint", cv::WINDOW_NORMAL);
 	cv::setMouseCallback("Image Inpaint", onMouse, &ii);
 	cv::createTrackbar("Patchsize", "Image Inpaint", &ii.patchSize, 50);
+    cv::createTrackbar("Stencilsize", "Image Inpaint", &ii.stencilSize, 50);
 	
 	bool done = false;
 	bool editingMode = true;
