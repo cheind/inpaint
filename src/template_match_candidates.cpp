@@ -240,7 +240,7 @@ namespace Inpaint {
             image.size().width - templ.size().width + 1,            
             CV_8UC1);
 
-        tmc.findCandidates(templ.getMat(), templMask.getMat(), candidates.getMat(), maxWeakErrors, maxMeanDifference);
+        tmc.findCandidates(templ.getMat(), templMask.getMat(), candidates.getMatRef(), maxWeakErrors, maxMeanDifference);
     }
 
 }
