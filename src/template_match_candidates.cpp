@@ -90,7 +90,7 @@ namespace Inpaint {
         for (size_t i = 0; i < _integrals.size(); ++i) 
         {
             cv::Mat_<int> &integral = _integrals[i];
-            const int *referenceClassRow = referenceClass.ptr<int>(i);
+            const int *referenceClassRow = referenceClass.ptr<int>(static_cast<int>(i));
 
             // For all template positions ty, tx (top-left template position)
             for (int ty = 0; ty < candidates.rows; ++ty) 
@@ -108,7 +108,7 @@ namespace Inpaint {
                         templ.size(), 
                         blocks, 
                         referenceClassRow, 
-                        (float)templMean[i], 
+                        (float)templMean[static_cast<int>(i)], 
                         maxMeanDifference, 
                         maxWeakErrors);
                 }

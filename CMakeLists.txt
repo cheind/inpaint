@@ -2,14 +2,21 @@ cmake_minimum_required(VERSION 2.8)
 
 project(inpainting)
 
-if (WIN32)
-	#set(OpenCV_STATIC true)
-	add_definitions("-D_SCL_SECURE_NO_WARNINGS")
-endif()
-
 find_package(OpenCV REQUIRED)
 
 include_directories(${OpenCV_INCLUDE_DIRS} "inc")
+
+if(CMAKE_VERSION VERSION_LESS "3.1")
+    if (CMAKE_CXX_COMPILER_ID STREQUAL "GNU")
+        set(CMAKE_CXX_FLAGS "--std=gnu++11 ${CMAKE_CXX_FLAGS}")    
+    endif()        
+else()
+	set(CMAKE_CXX_STANDARD 11)
+endif()
+
+if (WIN32)
+	add_definitions("-D_SCL_SECURE_NO_WARNINGS")
+endif()
 
 
 # Library

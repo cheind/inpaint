@@ -19,7 +19,7 @@
 
 #define CATCH_CONFIG_MAIN  
 #include "catch.hpp"
-#include "random_image.h"
+#include "random_testdata.h"
 
 #include <inpaint/gradient.h>
 #include <opencv2/opencv.hpp>
