@@ -31,7 +31,7 @@ namespace Inpaint {
     }
 
     /** Convert bin to feature */
-    void toFeature(const cv::Mat_<int> &bin, cv::Mat &feature, float bandwidth)
+    void toFeature(const cv::Mat_<int> &bin, const cv::Mat &feature, float bandwidth)
     {
         bin.convertTo(feature, CV_32FC1, bandwidth);
     }
