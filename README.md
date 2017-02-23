@@ -21,9 +21,20 @@ Although **Inpaint** should build accross multiple platforms and architectures, 
 
 If the build should fail for a specific platform, don't hestitate to create an issue. I'm also happy to accept any pull requests.
 
+## Inpainting images
+
+After building you might want to try out `inpaint_image_criminisi`
+
+1. Launch `inpaint_image_criminisi <image>`.
+1. Use the sliders on top of the UI to adjust patch and stencil size. Patch size refers to the size of texels that will be used during inpainting. It should be roughly the size of minimum texture feature size you intend to inpaint. Stencil size refers to radius of the interactive drawing tools explained in the following 2 steps.
+1. While holding your left mouse button pressed, move your mouse to mark the target area to be inpainted.
+1. While holding your right mouse button pressed, move your mouse to mark the source area from which samples can be copied to target area. If you skip this step, the entire image without source region is used as source area.
+1. Press `e` to toggle between editing / inpaint mode.
+1. Press `x` to quit.
+
 ## License
 ```
-   Copyright Christoph Heindl 2014
+   Copyright Christoph Heindl 2014-2017
 
    Inpaint is free software: you can redistribute it and/or modify
    it under the terms of the GNU General Public License as published by
