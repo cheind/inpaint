@@ -33,12 +33,12 @@ cv::Mat offsetImage(cv::Mat &image, cv::Scalar border, int xoffset, int yoffset)
 /** Main entry point */
 int main(int argc, char **argv)
 {
-	if (argc != 2) {
-		std::cerr << argv[0] << " image.png" << std::endl;
-		return -1;
-	}
+    if (argc != 2) {
+        std::cerr << argv[0] << " image.png" << std::endl;
+        return -1;
+    }
 
-	cv::Mat inputImage = cv::imread(argv[1]);
+    cv::Mat inputImage = cv::imread(argv[1]);
 
     cv::Mat target = offsetImage(inputImage, cv::Scalar(0), 20, 20);
     cv::imshow("target", target);
@@ -64,16 +64,9 @@ int main(int argc, char **argv)
         cv::waitKey();
 
         Inpaint::patchMatch(inputImage, target, cv::noArray(), corrs, distances, 5, 2);
-
-
-        
     }
 
     cv::waitKey(0);
 
-	return 0;
+    return 0;
 }
-
-
-
-

@@ -23,27 +23,27 @@
 #include <opencv2/opencv.hpp>
 
 struct ImageInfo {
-	cv::Mat image;
-	cv::Mat targetMask;
+    cv::Mat image;
+    cv::Mat targetMask;
     cv::Mat sourceMask;
-	cv::Mat displayImage;
-	bool leftMouseDown;
+    cv::Mat displayImage;
+    bool leftMouseDown;
     bool rightMouseDown;
-	int patchSize;
+    int patchSize;
     int stencilSize;
 };
 
 void onMouse(int eventType, int x, int y, int flags, void* data)
 {
-	ImageInfo &ii = *reinterpret_cast<ImageInfo*>(data);
-	if (eventType == cv::EVENT_LBUTTONDOWN)
-		ii.leftMouseDown = true;
-	else if (eventType == cv::EVENT_LBUTTONUP)
-		ii.leftMouseDown = false;
+    ImageInfo &ii = *reinterpret_cast<ImageInfo*>(data);
+    if (eventType == cv::EVENT_LBUTTONDOWN)
+        ii.leftMouseDown = true;
+    else if (eventType == cv::EVENT_LBUTTONUP)
+        ii.leftMouseDown = false;
     else if (eventType == cv::EVENT_RBUTTONDOWN)
-		ii.rightMouseDown = true;
+        ii.rightMouseDown = true;
     else if (eventType == cv::EVENT_RBUTTONUP)
-		ii.rightMouseDown = false;
+        ii.rightMouseDown = false;
 
     if (!ii.leftMouseDown && !ii.rightMouseDown)
         return;
@@ -52,94 +52,90 @@ void onMouse(int eventType, int x, int y, int flags, void* data)
     cv::Scalar color = ii.leftMouseDown ? cv::Scalar(0,250,0) : cv::Scalar(0,250,250);
     
     cv::circle(mask, cv::Point(x, y), ii.stencilSize, cv::Scalar(255), -1);
-	ii.displayImage.setTo(color, mask);	    
+    ii.displayImage.setTo(color, mask);
     cv::imshow("Image Inpaint", ii.displayImage);
 }
 
 /** Main entry point */
 int main(int argc, char **argv)
 {
-	if (argc != 2) {
-		std::cerr << argv[0] << " image.png" << std::endl;
-		return -1;
-	}
+    if (argc != 2) {
+        std::cerr << argv[0] << " image.png" << std::endl;
+        return -1;
+    }
 
-	cv::Mat inputImage = cv::imread(argv[1]);
+    cv::Mat inputImage = cv::imread(argv[1]);
 
-	ImageInfo ii;
-	ii.leftMouseDown = false;
+    ImageInfo ii;
+    ii.leftMouseDown = false;
     ii.rightMouseDown = false;
-	ii.patchSize = 9;
+    ii.patchSize = 9;
     ii.stencilSize = inputImage.rows / 40;
 
-	ii.image = inputImage.clone();
-	ii.displayImage = ii.image.clone();
+    ii.image = inputImage.clone();
+    ii.displayImage = ii.image.clone();
     ii.targetMask.create(ii.image.size(), CV_8UC1);
-	ii.targetMask.setTo(0);
+    ii.targetMask.setTo(0);
     ii.sourceMask.create(ii.image.size(), CV_8UC1);
-	ii.sourceMask.setTo(0);
+    ii.sourceMask.setTo(0);
 
-	cv::namedWindow("Image Inpaint", cv::WINDOW_NORMAL);
-	cv::setMouseCallback("Image Inpaint", onMouse, &ii);
-	cv::createTrackbar("Patchsize", "Image Inpaint", &ii.patchSize, 50);
+    cv::namedWindow("Image Inpaint", cv::WINDOW_NORMAL);
+    cv::setMouseCallback("Image Inpaint", onMouse, &ii);
+    cv::createTrackbar("Patchsize", "Image Inpaint", &ii.patchSize, 50);
     cv::createTrackbar("Stencilsize", "Image Inpaint", &ii.stencilSize, 50);
-	
-	bool done = false;
-	bool editingMode = true;
+
+    bool done = false;
+    bool editingMode = true;
 
     Inpaint::CriminisiInpainter inpainter;
-	cv::Mat image;	
-	while (!done) {
-		if (editingMode) {
-			image = ii.displayImage.clone();
-		} else {
-			if (inpainter.hasMoreSteps()) {
-				inpainter.step();
+    cv::Mat image;
+    while (!done) {
+        if (editingMode) {
+            image = ii.displayImage.clone();
+        } else {
+            if (inpainter.hasMoreSteps()) {
+                inpainter.step();
                 inpainter.image().copyTo(image);
                 image.setTo(cv::Scalar(0,250,0), inpainter.targetRegion());
-			} else {
-				ii.image = inpainter.image().clone();
-				ii.displayImage = ii.image.clone();
+            } else {
+                ii.image = inpainter.image().clone();
+                ii.displayImage = ii.image.clone();
                 ii.targetMask = inpainter.targetRegion().clone();
-				editingMode = true;
-			}
-		}
+                editingMode = true;
+            }
+        }
 
-		cv::imshow("Image Inpaint", image);
-		int key = cv::waitKey(10);
+        cv::imshow("Image Inpaint", image);
+        int key = cv::waitKey(10);
 
-		if (key == 'x') {
-			done = true;
-		} else if (key == 'e') {
-			if (editingMode) {
-				// Was in editing, now perform
+        if (key == 'x') {
+            done = true;
+        } else if (key == 'e') {
+            if (editingMode) {
+                // Was in editing, now perform
                 inpainter.setSourceImage(ii.image);
                 inpainter.setTargetMask(ii.targetMask);
                 inpainter.setSourceMask(ii.sourceMask);
                 inpainter.setPatchSize(ii.patchSize);
                 inpainter.initialize();
-			} 
-			editingMode = !editingMode;
-		} else if (key == 'r') {
-			// revert
-			ii.image = inputImage.clone();
-			ii.displayImage = ii.image.clone();
-			ii.targetMask.create(ii.image.size(), CV_8UC1);
-			ii.targetMask.setTo(0);
+            }
+            editingMode = !editingMode;
+        } else if (key == 'r') {
+            // revert
+            ii.image = inputImage.clone();
+            ii.displayImage = ii.image.clone();
+            ii.targetMask.create(ii.image.size(), CV_8UC1);
+            ii.targetMask.setTo(0);
             ii.sourceMask.create(ii.image.size(), CV_8UC1);
-			ii.sourceMask.setTo(0);
-			editingMode = true;
-		}
-	}
+            ii.sourceMask.setTo(0);
+            editingMode = true;
+        }
+    }
 
-	cv::imshow("source", inputImage);
+    cv::imshow("source", inputImage);
     cv::imshow("final", inpainter.image());
-	cv::waitKey();
-	cv::imwrite("final.png", inpainter.image());
+    cv::waitKey();
+    cv::imwrite("final.png", inpainter.image());
 
-	return 0;
+    return 0;
 }
-
-
-
-

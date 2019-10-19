@@ -34,8 +34,8 @@ inline cv::Mat randomLinesImage(int imageSize, int nLines)
         pt1.y = rng.uniform( 0, imageSize );
         pt2.x = rng.uniform( 0, imageSize );
         pt2.y = rng.uniform( 0, imageSize );
- 
-        cv::line(m, pt1, pt2, rng.uniform(10, 255), rng.uniform(1, 10));        
+
+        cv::line(m, pt1, pt2, rng.uniform(10, 255), rng.uniform(1, 10));
     }
 
     return m;
@@ -80,15 +80,15 @@ inline cv::Mat shiftImage(const cv::Mat &img, int y, int x)
     img(cv::Rect(0,0,img.cols - x, img.rows - x)).copyTo(out(cv::Rect(x, y, img.cols - x, img.rows - x)));
     return out;
 }
-    
+
 inline void randomGaussianBlobs(
-    int blobs, // Not used if centers is provided.
-    int samplesPerBlob, 
-    int dimensions,     
-    float clusterStdDev,
-    cv::InputOutputArray centers_, cv::OutputArray features_, cv::OutputArray labels_,
-    float minPosCenter = -20, float maxPosCenter = 20.f,
-    uint64 randomSeed = cv::getTickCount())
+        int blobs, // Not used if centers is provided.
+        int samplesPerBlob,
+        int dimensions,
+        float clusterStdDev,
+        cv::InputOutputArray centers_, cv::OutputArray features_, cv::OutputArray labels_,
+        float minPosCenter = -20, float maxPosCenter = 20.f,
+        uint64 randomSeed = cv::getTickCount())
 {
 
     cv::Mat centers(blobs, dimensions, CV_64FC1);
@@ -97,9 +97,9 @@ inline void randomGaussianBlobs(
 
     bool haveCenters = true;
     if (centers_.empty()) {
-        haveCenters = false;        
+        haveCenters = false;
     } else {
-        centers_.getMat().convertTo(centers, CV_64FC1);        
+        centers_.getMat().convertTo(centers, CV_64FC1);
     }
 
     cv::theRNG().state = randomSeed;
@@ -127,6 +127,6 @@ inline void randomGaussianBlobs(
     labels.copyTo(labels_.getMat());
 
 }
-    
+
 
 #endif

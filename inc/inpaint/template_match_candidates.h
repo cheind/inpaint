@@ -27,7 +27,7 @@ namespace Inpaint {
     /**
         Find candidate positions for template matching.
 
-        Implementation is based on 
+        Implementation is based on
         "Speed-up Template Matching through Integral Image based Weak Classifiers", Tirui Wu et. al.
 
         This method subdivides the template into a set of blocks. For each block the mean (of each
@@ -40,14 +40,14 @@ namespace Inpaint {
         too many descisions mismatch, the current position is said not to be a candidate.
 
         What makes the method fast is the use of integral images for calculating means. Using integral
-        images reduces the calculated of the mean to two additions, two subtractions and a division, 
+        images reduces the calculated of the mean to two additions, two subtractions and a division,
         independent of the size of the rectangle to calculate the mean for.
 
         Changes made by the author with respect to the original paper:
             - The algorithm works with 1 or 3 channel images. If multiple image channels are present
               each channel is treated seperately.
 
-            - A mask can be passed with the template. The mask defines the valid areas within the 
+            - A mask can be passed with the template. The mask defines the valid areas within the
               template. Only those areas are considered during classification. A block is rejected
               from the decision process if not all its pixels are masked. If no mask is passed, all
               blocks are considered valid.
@@ -66,7 +66,7 @@ namespace Inpaint {
         /** Initialize candidate search. */
         void initialize();
 
-        /** 
+        /**
             Find candidates.
 
             \param templ Template image.
@@ -77,42 +77,42 @@ namespace Inpaint {
             \return Candidate mask.
         */
         void findCandidates(
-            const cv::Mat &templ, 
-            const cv::Mat &templMask, 
-            cv::Mat &candidates,
-            int maxWeakErrors = 3, 
-            float maxMeanDifference = 20);
+                const cv::Mat &templ,
+                const cv::Mat &templMask,
+                cv::Mat &candidates,
+                int maxWeakErrors = 3,
+                float maxMeanDifference = 20);
 
     private:
 
         /** Subdivides a size into a rectangle of blocks. */
         void computeBlockRects(
-            cv::Size size, 
-            cv::Size partitions, 
-            std::vector< cv::Rect > &rects);
+                cv::Size size,
+                cv::Size partitions,
+                std::vector< cv::Rect > &rects);
 
         /** Reject blocks depending on the template mask. */
         void removeInvalidBlocks(
-            const cv::Mat &templMask, 
-            std::vector< cv::Rect > &rects);
+                const cv::Mat &templMask,
+                std::vector< cv::Rect > &rects);
 
         /** Calculate the weak classifiers for the template, taking the mask into account. */
         void weakClassifiersForTemplate(
-            const cv::Mat &templ, 
-            const cv::Mat &templMask, 
-            const std::vector< cv::Rect > &rects, 
-            cv::Mat_<int> &classifiers, 
-            cv::Scalar &mean);
+                const cv::Mat &templ,
+                const cv::Mat &templMask,
+                const std::vector< cv::Rect > &rects,
+                cv::Mat_<int> &classifiers,
+                cv::Scalar &mean);
 
         /** Compare the template classifiers to the classifiers generated from the given template position. */
         uchar compareWeakClassifiers(
-            const cv::Mat_<int> &i, 
-            int x, int y, 
-            cv::Size templSize, 
-            const std::vector< cv::Rect > &blocks, 
-            const int *compareTo, 
-            float templateMean, 
-            float maxMeanDiff, int maxWeakErrors);
+                const cv::Mat_<int> &i,
+                int x, int y,
+                cv::Size templSize,
+                const std::vector< cv::Rect > &blocks,
+                const int *compareTo,
+                float templateMean,
+                float maxMeanDiff, int maxWeakErrors);
 
         cv::Mat _image;
         std::vector< cv::Mat_<int> > _integrals;
@@ -121,7 +121,7 @@ namespace Inpaint {
         cv::Size _partitionSize;
     };
 
-    /**  
+    /**
         Find candidate positions for template matching.
 
         This is a convinience method for using TemplateMatchCandidates.
@@ -136,13 +136,13 @@ namespace Inpaint {
         \param maxMeanDifference Max difference of patch / template mean before rejecting a candidate.
     */
     void findTemplateMatchCandidates(
-        cv::InputArray image,
-        cv::InputArray templ,
-        cv::InputArray templMask,
-        cv::OutputArray candidates,
-        cv::Size partitionSize = cv::Size(3,3),
-        int maxWeakErrors = 3, 
-        float maxMeanDifference = 20);
+            cv::InputArray image,
+            cv::InputArray templ,
+            cv::InputArray templMask,
+            cv::OutputArray candidates,
+            cv::Size partitionSize = cv::Size(3,3),
+            int maxWeakErrors = 3,
+            float maxMeanDifference = 20);
 
 }
 #endif
