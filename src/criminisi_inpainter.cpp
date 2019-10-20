@@ -81,7 +81,10 @@ namespace Inpaint {
         _input.targetMask.copyTo(_targetRegion);
 
         // Initialize regions
-        cv::rectangle(_targetRegion, cv::Rect(0, 0, _targetRegion.cols, _targetRegion.rows), cv::Scalar(0), _halfMatchSize);
+        cv::rectangle(_targetRegion, cv::Rect(0, 0, _targetRegion.cols, _halfMatchSize), cv::Scalar(0), -1); // Top
+        cv::rectangle(_targetRegion, cv::Rect(0, 0, _halfMatchSize, _targetRegion.rows), cv::Scalar(0), -1); // Left
+        cv::rectangle(_targetRegion, cv::Rect(_targetRegion.cols - _halfMatchSize, 0, _targetRegion.cols, _targetRegion.rows), cv::Scalar(0), -1); // Bottom
+        cv::rectangle(_targetRegion, cv::Rect(0, _targetRegion.rows - _halfMatchSize, _targetRegion.cols, _targetRegion.rows), cv::Scalar(0), -1); // Right
 
         _sourceRegion = 255 - _targetRegion;
         cv::rectangle(_sourceRegion, cv::Rect(0, 0, _sourceRegion.cols, _sourceRegion.rows), cv::Scalar(0), _halfMatchSize);
