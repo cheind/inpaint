@@ -69,7 +69,7 @@ TEST_CASE("patch-centered")
     REQUIRE(centeredPatch<PATCH_BOUNDS | PATCH_REF>(m, 20, 20, 10).size() == cv::Size(21, 21));
     REQUIRE(centeredPatch<PATCH_BOUNDS | PATCH_REF>(m, 20, 20, 10).type() == m.type());
     REQUIRE(cv::norm(m(cv::Rect(20, 20, 21, 21)), centeredPatch<PATCH_BOUNDS | PATCH_REF>(m, 20, 20, 10)) == 0);
-   
+
 }
 
 TEST_CASE("patch-topleft")
@@ -96,7 +96,7 @@ TEST_CASE("patch-topleft")
     REQUIRE(topLeftPatch<PATCH_FAST>(img, img.rows - 3, img.cols - 3, 3, 3).size() == cv::Size(3, 3));
 
     REQUIRE(topLeftPatch<PATCH_BOUNDS | PATCH_REF>(img, img.rows - 3, img.cols - 3, 3, 3).size() == cv::Size(3, 3));
-    REQUIRE(cv::norm(img(cv::Range(img.rows - 3,img.rows), cv::Range(img.cols - 3, img.cols)), topLeftPatch<PATCH_BOUNDS | PATCH_REF>(img, img.rows - 3, img.cols - 3, 3, 3)) == 0); 
+    REQUIRE(cv::norm(img(cv::Range(img.rows - 3,img.rows), cv::Range(img.cols - 3, img.cols)), topLeftPatch<PATCH_BOUNDS | PATCH_REF>(img, img.rows - 3, img.cols - 3, 3, 3)) == 0);
 
     // Clamping
 

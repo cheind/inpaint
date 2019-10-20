@@ -24,8 +24,8 @@
 
 namespace Inpaint {
     
-    /** 
-        Non-parametric clustering using mean-shift and a flat kernel. 
+    /**
+        Non-parametric clustering using mean-shift and a flat kernel.
         
         Besides clustering this method can also be used for robust mean estimation.
 
@@ -41,13 +41,13 @@ namespace Inpaint {
               equal to bandwidth. Seeds will then be placed in bins with at least on element
               in them.
 
-        \param features Matrix of features of size num-features x num-dims and type CV_32FC1.     
-        \param seeds Optional matrix of seeds of size num-seeds x num-dims and type CV_32FC1. 
+        \param features Matrix of features of size num-features x num-dims and type CV_32FC1.
+        \param seeds Optional matrix of seeds of size num-seeds x num-dims and type CV_32FC1.
                If omitted, binning is used to generate seed points.
         \param weights Optional matrix of feature weights of size 1 x num-features and type CV_32FC1.
         \param centers Cluster means matrix of size num-clusters-found x num-dims and type CV_32FC1.
         \param labels Optionally computed feature-to-cluster label matrix of size 1 x num-features and type CV_32SC1.
-        \param distances Optionally computed feature-to-cluster squared L2 distance matrix of size 1 x num-features and 
+        \param distances Optionally computed feature-to-cluster squared L2 distance matrix of size 1 x num-features and
                type CV_32FC1.
         \param bandwidth Fixed radius during iteration.
         \param maxIteration No more iterations per seed will be performed.
@@ -55,12 +55,12 @@ namespace Inpaint {
         \param mergeClusters Merge all cluster centers that are closer than bandwidth.
         \param sortClusters Sort clusters descending based on probability modes in descending order.
 
-        */      void meanShift(
-        cv::InputArray features, cv::InputArray seeds, cv::InputArray weights, 
-        cv::OutputArray centers, cv::OutputArray labels, cv::OutputArray distances,     
-        float bandwidth, int maxIteration = 200, bool perturbate = true, bool mergeClusters = true, bool sortClusters = true);
+        */      void meanShift(
+            cv::InputArray features, cv::InputArray seeds, cv::InputArray weights,
+            cv::OutputArray centers, cv::OutputArray labels, cv::OutputArray distances,
+            float bandwidth, int maxIteration = 200, bool perturbate = true, bool mergeClusters = true, bool sortClusters = true);
 
-   
+
 
 }
 

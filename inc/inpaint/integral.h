@@ -24,16 +24,16 @@
 
 namespace Inpaint {
 
-    /** 
+    /**
         Compute the sum of elements in the given rectangle using an integral image.
         No bounds checking is performed.
 
-        Each image channel is evaluated seperately. Currently the only valid channel 
+        Each image channel is evaluated seperately. Currently the only valid channel
         type is CV_32S.
 
         \param i Integral image
         \param r Rectangle to compute sum for
-        \return sum as scalar. 
+        \return sum as scalar.
     */
     inline cv::Scalar sumInRectUsingIntegralImage(const cv::Mat &i, const cv::Rect &r)
     {

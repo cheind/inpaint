@@ -65,8 +65,8 @@ TEST_CASE("patch-match-mask")
             noneInside = false;
             wrong = corr;
             break;
-        }            
-    }    
+        }
+    }
     REQUIRE(noneInside);
 
 }

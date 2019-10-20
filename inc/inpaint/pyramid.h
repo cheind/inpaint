@@ -24,14 +24,14 @@
 
 namespace Inpaint {
 
-    /** 
+    /**
         Compute a sequence of lower resolution images.
 
         \param i Integral image
         \param r Rectangle to compute sum for
-        \return sum as scalar. 
+        \return sum as scalar.
     */
-    void imagePyramid(cv::InputArray image, cv::OutputArrayOfArrays pyr, cv::Size minimumSize, int interpolationType);    
+    void imagePyramid(cv::InputArray image, cv::OutputArrayOfArrays pyr, cv::Size minimumSize, int interpolationType);
 
 }
 #endif

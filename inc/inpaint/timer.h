@@ -24,13 +24,13 @@
 
 namespace Inpaint {
 
-    /** 
-        Simple timer for profiling based on OpenCV functionality.        
+    /**
+        Simple timer for profiling based on OpenCV functionality.
     */
     class Timer {
     public:
         inline Timer()
-          : _invFreq(1.0 / cv::getTickFrequency()), _start(cv::getTickCount())
+            : _invFreq(1.0 / cv::getTickFrequency()), _start(cv::getTickCount())
         {}
 
         inline double measure()
@@ -49,7 +49,7 @@ namespace Inpaint {
     class TimerWithStats {
     public:
 
-        inline void measure(int index) 
+        inline void measure(int index)
         {
             _stats[index].sum += _t.measure();
             _stats[index].called += 1;

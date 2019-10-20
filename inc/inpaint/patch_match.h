@@ -31,23 +31,23 @@ namespace Inpaint {
     /**
         Compute dense approximate nearest neighbor fields.
 
-        Implementation is based on 
+        Implementation is based on
         "PatchMatch: A Randomized Correspondence Algorithm for Structural Image Editing", Barnes et al.
 
         Iterative method to compute the nearest neighbor in target for each pixel in source. Comparison
         for best pixels can use any of the supported cv::norm metric types.
 
         \param source image. Either 1 channel or 3 channel images are supported.
-        \param target image. Target image 
+        \param target image. Target image
 
     */
     void patchMatch(
-        cv::InputArray &source, 
-        cv::InputArray &target, cv::InputArray &targetMask, 
-        cv::InputOutputArray &corrs, cv::InputOutputArray &distances,
-        int halfPatchSize,
-        int iterations,
-        int normType = cv::NORM_L2SQR);
+            cv::InputArray &source,
+            cv::InputArray &target, cv::InputArray &targetMask,
+            cv::InputOutputArray &corrs, cv::InputOutputArray &distances,
+            int halfPatchSize,
+            int iterations,
+            int normType = cv::NORM_L2SQR);
 
 
     
