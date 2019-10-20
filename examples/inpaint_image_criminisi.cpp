@@ -116,7 +116,7 @@ int main(int argc, char **argv)
                 inpainter.setSourceImage(ii.image);
                 inpainter.setTargetMask(ii.targetMask);
                 inpainter.setSourceMask(ii.sourceMask);
-                inpainter.setPatchSize(ii.patchSize);
+                inpainter.setPatchSize(std::max(2, ii.patchSize));
                 inpainter.initialize();
             }
             editingMode = !editingMode;
