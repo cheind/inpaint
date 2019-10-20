@@ -236,9 +236,8 @@ namespace Inpaint {
             cv::OutputArray centers_, cv::OutputArray labels_, cv::OutputArray distances_,
             float bandwidth, int maxIterations, bool perturbate, bool mergeClusters, bool sortClusters)
     {
-        CV_Assert(
-                    features_.type() == CV_MAKETYPE(CV_32F, 1) &&
-                    maxIterations > 0);
+        CV_Assert(features_.type() == CV_MAKETYPE(CV_32F, 1));
+        CV_Assert(maxIterations > 0);
 
         cv::Mat features = features_.getMat();
         cv::Mat seeds;
@@ -246,9 +245,8 @@ namespace Inpaint {
         
         // Deal with seeds
         if (!seeds_.empty()) {
-            CV_Assert(
-                        seeds_.type() == CV_MAKETYPE(CV_32F, 1) &&
-                        seeds_.cols() == features_.cols());
+            CV_Assert(seeds_.type() == CV_MAKETYPE(CV_32F, 1));
+            CV_Assert(seeds_.cols() == features_.cols());
 
             seeds = seeds_.getMat().clone();
         } else {
@@ -258,9 +256,8 @@ namespace Inpaint {
 
         // Deal with weights
         if (!weights_.empty()) {
-            CV_Assert(
-                        weights_.type() == CV_MAKETYPE(CV_32F, 1) &&
-                        weights_.cols() == features_.rows());
+            CV_Assert(weights_.type() == CV_MAKETYPE(CV_32F, 1));
+            CV_Assert(weights_.cols() == features_.rows());
 
             weights = weights_.getMat();
         } else {

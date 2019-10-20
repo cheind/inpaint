@@ -67,12 +67,11 @@ namespace Inpaint {
 
     void CriminisiInpainter::initialize()
     {
-        CV_Assert(
-                    (_input.image.channels() == 3) &&
-                    _input.image.depth() == CV_8U &&
-                    _input.targetMask.size() == _input.image.size() &&
-                    (_input.sourceMask.empty() || _input.targetMask.size() == _input.sourceMask.size()) &&
-                    _input.patchSize > 0);
+        CV_Assert(_input.image.channels() == 3);
+        CV_Assert(_input.image.depth() == CV_8U);
+        CV_Assert( _input.targetMask.size() == _input.image.size());
+        CV_Assert(_input.sourceMask.empty() || _input.targetMask.size() == _input.sourceMask.size());
+        CV_Assert(_input.patchSize > 0);
 
         _halfPatchSize = _input.patchSize / 2;
         _halfMatchSize = (int) (_halfPatchSize * 1.25f);

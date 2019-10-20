@@ -27,10 +27,8 @@ namespace Inpaint {
 
     void TemplateMatchCandidates::setSourceImage(const cv::Mat &image)
     {
-        CV_Assert(
-                    (image.channels() == 1 || image.channels() == 3) &&
-                    (image.depth() == CV_8U)
-                    );
+        CV_Assert(image.channels() == 1 || image.channels() == 3);
+        CV_Assert(image.depth() == CV_8U);
 
         _image = image;
     }
@@ -68,10 +66,9 @@ namespace Inpaint {
             int maxWeakErrors,
             float maxMeanDifference)
     {
-        CV_Assert(
-                    templ.type() == CV_MAKETYPE(CV_8U, _integrals.size()) &&
-                    templ.size() == _templateSize &&
-                    (templMask.empty() || templMask.size() == _templateSize));
+        CV_Assert(templ.type() == CV_MAKETYPE(CV_8U, _integrals.size()));
+        CV_Assert(templ.size() == _templateSize);
+        CV_Assert(templMask.empty() || templMask.size() == _templateSize);
 
         candidates.create(
                     _image.size().height - templ.size().height + 1,

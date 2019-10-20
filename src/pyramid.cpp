@@ -24,7 +24,7 @@ namespace Inpaint {
 
     void imagePyramid(cv::InputArray image_, cv::OutputArrayOfArrays pyr_, cv::Size minimumSize, int interpolationType)
     {
-        CV_Assert(pyr_.kind() == cv::_InputArray::STD_VECTOR_MAT );
+        CV_Assert(pyr_.kind() == cv::_InputArray::STD_VECTOR_MAT);
 
         std::vector<cv::Mat>& images = *( std::vector<cv::Mat>*)pyr_.getObj();
 

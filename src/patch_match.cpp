@@ -255,13 +255,11 @@ namespace Inpaint {
             int iterations,
             const Distance &distance)
     {
-        CV_Assert(
-                    (source_.type() == CV_MAKETYPE(CV_8U, 1) || source_.type() == CV_MAKETYPE(CV_8U, 3)) &&
-                    (target_.type() == source_.type()) &&
-                    (targetMask_.empty() || (targetMask_.type() == CV_MAKETYPE(CV_8U, 1) && (targetMask_.size() == target_.size()))) &&
-                    (halfPatchSize > 0) &&
-                    (iterations >= 0)
-                    );
+        CV_Assert(source_.type() == CV_MAKETYPE(CV_8U, 1) || source_.type() == CV_MAKETYPE(CV_8U, 3));
+        CV_Assert(target_.type() == source_.type());
+        CV_Assert(targetMask_.empty() || (targetMask_.type() == CV_MAKETYPE(CV_8U, 1) && targetMask_.size() == target_.size()));
+        CV_Assert(halfPatchSize > 0);
+        CV_Assert(iterations >= 0);
 
         cv::Mat source = source_.getMat();
         cv::Mat target = target_.getMat();
@@ -272,8 +270,8 @@ namespace Inpaint {
         bool neededRandomInitialization = false;
         if (!corrs_.empty()) {
             // Assume we have prior guess / knowledge about correspondences
-            CV_Assert(corrs_.type() == CV_MAKETYPE(CV_32S, 2) &&
-                      corrs_.size() == source.size());
+            CV_Assert(corrs_.type() == CV_MAKETYPE(CV_32S, 2));
+            CV_Assert(corrs_.size() == source.size());
             corrs = corrs_.getMat();
         } else {
             // Otherwise perform random initialization
@@ -298,9 +296,9 @@ namespace Inpaint {
         // If distances are provided treat them as prior knowlegde. This only makes sense when
         // concurrently passing prior correspondences.
         if (!distances_.empty()) {
-            CV_Assert(!neededRandomInitialization &&
-                      distances_.size() == source.size() &&
-                      distances_.type() == CV_MAKETYPE(CV_64F, 1));
+            CV_Assert(!neededRandomInitialization);
+            CV_Assert(distances_.size() == source.size());
+            CV_Assert(distances_.type() == CV_MAKETYPE(CV_64F, 1));
 
             distances = distances_.getMat();
         } else {
