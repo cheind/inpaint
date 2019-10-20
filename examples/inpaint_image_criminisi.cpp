@@ -52,8 +52,7 @@ void onMouse(int eventType, int x, int y, int flags, void* data)
     cv::Scalar color = ii.leftMouseDown ? cv::Scalar(0,250,0) : cv::Scalar(0,250,250);
     
     cv::circle(mask, cv::Point(x, y), ii.stencilSize, cv::Scalar(255), -1);
-    ii.displayImage.setTo(color, mask);
-    cv::imshow("Image Inpaint", ii.displayImage);
+    cv::circle(ii.displayImage, cv::Point(x, y), ii.stencilSize, color, -1);
 }
 
 /** Main entry point */
@@ -91,7 +90,7 @@ int main(int argc, char **argv)
     cv::Mat image;
     while (!done) {
         if (editingMode) {
-            image = ii.displayImage.clone();
+            cv::imshow("Image Inpaint", ii.displayImage);
         } else {
             if (inpainter.hasMoreSteps()) {
                 inpainter.step();
@@ -103,9 +102,9 @@ int main(int argc, char **argv)
                 ii.targetMask = inpainter.targetRegion().clone();
                 editingMode = true;
             }
+            cv::imshow("Image Inpaint", image);
         }
 
-        cv::imshow("Image Inpaint", image);
         int key = cv::waitKey(10);
 
         if (key == 'x') {
