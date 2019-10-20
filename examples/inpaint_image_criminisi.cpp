@@ -81,8 +81,8 @@ int main(int argc, char **argv)
 
     cv::namedWindow("Image Inpaint", cv::WINDOW_NORMAL);
     cv::setMouseCallback("Image Inpaint", onMouse, &ii);
-    cv::createTrackbar("Patchsize", "Image Inpaint", &ii.patchSize, 50);
-    cv::createTrackbar("Stencilsize", "Image Inpaint", &ii.stencilSize, 50);
+    cv::createTrackbar("Patch Size", "Image Inpaint", &ii.patchSize, 50);
+    cv::createTrackbar("Stencil Size", "Image Inpaint", &ii.stencilSize, 50);
 
     bool done = false;
     bool editingMode = true;
