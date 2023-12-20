@@ -35,7 +35,7 @@ namespace Inpaint {
         PATCH_REF = 1 << 2
     };
 
-     /** 
+    /**
         Returns a patch anchored on the given top-left corner.
 
         \tparam Flags Combination of flags for patch creation.
@@ -48,7 +48,7 @@ namespace Inpaint {
         \return Returns a view on the image that contains only the patch region.
     */
     template<int Flags>
-    cv::Mat topLeftPatch(const cv::Mat &m, int y, int x, int height, int width) 
+    cv::Mat topLeftPatch(const cv::Mat &m, int y, int x, int height, int width)
     {
         // Note, compile time if's, will be optimized away by compiler.
         if (Flags & PATCH_BOUNDS) {
@@ -57,8 +57,8 @@ namespace Inpaint {
             width -= std::abs(topx - x);
             height -= std::abs(topy - y);
 
-	        width = clamp(width, 0, m.cols - topx);
-            height = clamp(height, 0, m.rows - topy);            
+            width = clamp(width, 0, m.cols - topx);
+            height = clamp(height, 0, m.rows - topy);
             x = topx;
             y = topy;
         }
@@ -67,27 +67,27 @@ namespace Inpaint {
             return m(cv::Rect(x, y, width, height));
         } else {
             uchar *start = const_cast<uchar*>(m.ptr<uchar>(y, x));
-            return cv::Mat(height, width, m.type(), start, m.step);        
+            return cv::Mat(height, width, m.type(), start, m.step);
         }
     }
 
-    /** 
-        Returns a patch anchored on the given top-left corner.. 
+    /**
+        Returns a patch anchored on the given top-left corner..
     */
-    inline cv::Mat topLeftPatch(const cv::Mat &m, int y, int x, int height, int width) 
+    inline cv::Mat topLeftPatch(const cv::Mat &m, int y, int x, int height, int width)
     {
         return topLeftPatch<PATCH_FAST>(m, y, x, height, width);
     }
 
-    /** 
-        Returns a patch anchored on the given top-left corner.. 
+    /**
+        Returns a patch anchored on the given top-left corner..
     */
-    inline cv::Mat topLeftPatch(const cv::Mat &m, const cv::Rect &r) 
+    inline cv::Mat topLeftPatch(const cv::Mat &m, const cv::Rect &r)
     {
         return topLeftPatch<PATCH_FAST>(m, r.y, r.x, r.height, r.width);
     }
-  
-    /** 
+
+    /**
         Returns a patch centered around the given pixel coordinates.
 
         \tparam Flags Combination of flags for patch creation.
@@ -99,7 +99,7 @@ namespace Inpaint {
         \return Returns a view on the image that contains only the patch region.
     */
     template<int Flags>
-    cv::Mat centeredPatch(const cv::Mat &m, int y, int x, int halfPatchSize) 
+    cv::Mat centeredPatch(const cv::Mat &m, int y, int x, int halfPatchSize)
     {
         int width = 2 * halfPatchSize + 1;
         int height = 2 * halfPatchSize + 1;
@@ -109,16 +109,16 @@ namespace Inpaint {
         return topLeftPatch<Flags>(m, y, x, height, width);
     }
 
-    /** 
-        Returns a patch centered around the given pixel coordinates. 
+    /**
+        Returns a patch centered around the given pixel coordinates.
     */
-    inline cv::Mat centeredPatch(const cv::Mat &m, int y, int x, int halfPatchSize) 
+    inline cv::Mat centeredPatch(const cv::Mat &m, int y, int x, int halfPatchSize)
     {
         return centeredPatch<PATCH_FAST>(m, y, x, halfPatchSize);
     }
 
-    /** 
-        Given two centered patches in two images compute the comparable region in both images as top-left patches. 
+    /**
+        Given two centered patches in two images compute the comparable region in both images as top-left patches.
         
         \param a first image
         \param b second image
@@ -129,14 +129,14 @@ namespace Inpaint {
                 with respect to the given center points.
         */
     inline std::pair<cv::Rect, cv::Rect> comparablePatchRegions(
-        const cv::Mat &a, const cv::Mat &b,
-        cv::Point ap, cv::Point bp, 
-        int halfPatchSize)
+            const cv::Mat &a, const cv::Mat &b,
+            cv::Point ap, cv::Point bp,
+            int halfPatchSize)
     {
         int left = maximum(-halfPatchSize, -ap.x, -bp.x);
-        int right = minimum(halfPatchSize + 1, -ap.x + a.cols, -bp.x + b.cols); 
+        int right = minimum(halfPatchSize + 1, -ap.x + a.cols, -bp.x + b.cols);
         int top = maximum(-halfPatchSize, -ap.y, -bp.y);
-        int bottom = minimum(halfPatchSize + 1, -ap.y + a.rows, -bp.y + b.rows); 
+        int bottom = minimum(halfPatchSize + 1, -ap.y + a.rows, -bp.y + b.rows);
 
         std::pair<cv::Rect, cv::Rect> p;
 
@@ -157,7 +157,7 @@ namespace Inpaint {
     inline bool isCenteredPatchCrossingBoundary(cv::Point p, int halfPatchSize, const cv::Mat &img)
     {
         return p.x < halfPatchSize || p.x >= img.cols - halfPatchSize ||
-               p.y < halfPatchSize || p.y >= img.rows - halfPatchSize;
+                p.y < halfPatchSize || p.y >= img.rows - halfPatchSize;
     }
     
 

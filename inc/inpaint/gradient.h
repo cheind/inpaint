@@ -47,11 +47,11 @@ namespace Inpaint {
         };
 
         const float gx = -1.f * rows[0][x-1] + 1.f * rows[0][x+1] +
-                         -2.f * rows[1][x-1] + 2.f * rows[1][x+1] +
-                         -1.f * rows[2][x-1] + 1.f * rows[2][x+1];
+                -2.f * rows[1][x-1] + 2.f * rows[1][x+1] +
+                -1.f * rows[2][x-1] + 1.f * rows[2][x+1];
 
         const float gy = -1.f * rows[0][x-1] + -2.f * rows[0][x] + -1.f * rows[0][x+1] +
-                          1.f * rows[2][x-1] +  2.f * rows[2][x] +  1.f * rows[2][x+1];
+                1.f * rows[2][x-1] +  2.f * rows[2][x] +  1.f * rows[2][x+1];
 
         return cv::Vec2f(gx, gy);
     }
@@ -69,13 +69,13 @@ namespace Inpaint {
     cv::Vec2f normalizedGradient(const Mat &m, int y, int x)
     {
         cv::Vec2f grad = gradient(m, y, x);
-		float dot = grad.dot(grad);
+        float dot = grad.dot(grad);
 
-		if (dot == 0) {
-			grad *= 0;
-		} else {
-			grad /= sqrtf(dot);
-		}
+        if (dot == 0) {
+            grad *= 0;
+        } else {
+            grad /= sqrtf(dot);
+        }
 
         return grad;
     }

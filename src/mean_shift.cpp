@@ -41,7 +41,7 @@ namespace Inpaint {
         std::size_t operator()(const cv::Mat_<int> & k) const {
             std::size_t h = 0;
             const int *r = k.ptr<int>(0);
-        
+
             for (int i = 0; i < k.cols; ++i) {
                 combine(h, r[i]);
             }
@@ -56,18 +56,18 @@ namespace Inpaint {
         std::hash<int> ihash;
     };
 
-    struct BinEqual 
+    struct BinEqual
     {
-        bool operator() (const cv::Mat_<int> &x, const cv::Mat_<int> &y) const 
-        { 
-            return cv::norm(x, y, cv::NORM_L1) == 0; 
+        bool operator() (const cv::Mat_<int> &x, const cv::Mat_<int> &y) const
+        {
+            return cv::norm(x, y, cv::NORM_L1) == 0;
         }
     };
 
     typedef std::unordered_set<
-        cv::Mat_<int>,
-        BinHasher,
-        BinEqual> BinSet;
+    cv::Mat_<int>,
+    BinHasher,
+    BinEqual> BinSet;
 
 
 
@@ -98,11 +98,11 @@ namespace Inpaint {
         cv::flann::KDTreeIndexParams kdtree(1);
         cv::flann::LinearIndexParams linear;
         const bool canUseKdTree = features.cols < 10 && features.rows > 20;
-        cv::flann::IndexParams &params = canUseKdTree ? (cv::flann::IndexParams &)kdtree : (cv::flann::IndexParams &)linear;       
+        cv::flann::IndexParams &params = canUseKdTree ? (cv::flann::IndexParams &)kdtree : (cv::flann::IndexParams &)linear;
         cv::flann::Index index(features, params);
-         
+
         const double stopThreshold = bandwidth / 1000.0;
-        // Could easily parallelize this outer loop 
+        // Could easily parallelize this outer loop
         for(int seedId = 0; seedId < seeds.rows; ++seedId) {
 
             cv::Mat_<int> nbrs(1, features.rows);
@@ -111,10 +111,10 @@ namespace Inpaint {
             cv::Mat seed = seeds.row(seedId);
             cv::Mat oldSeed;
             cv::Mat seedWhenPerturbationStarted;
-            cv::Mat_<float> perturbationVector(1, seeds.cols);   
+            cv::Mat_<float> perturbationVector(1, seeds.cols);
             cv::RNG rng(cv::getTickCount()); // Todo take care of this initialization when parallelizing.
             
-            bool wasPerturbated = false;            
+            bool wasPerturbated = false;
             int iter = 0;
             int nnbrs = 0;
             float weightSum = 0;
@@ -141,12 +141,12 @@ namespace Inpaint {
                 // Test for convergence
                 if (cv::norm(seed, oldSeed) < stopThreshold) {
                     
-                    // Completed if we either don't need to perturbate, the number of iterations left is too low, 
+                    // Completed if we either don't need to perturbate, the number of iterations left is too low,
                     // or new seed is close to position when perturbation started.
 
-                    if (!perturbate || 
-                       ((maxIterations - iter) < 10) || 
-                       (wasPerturbated && cv::norm(seed, seedWhenPerturbationStarted) < stopThreshold)) 
+                    if (!perturbate ||
+                            ((maxIterations - iter) < 10) ||
+                            (wasPerturbated && cv::norm(seed, seedWhenPerturbationStarted) < stopThreshold))
                     {
                         // done
                         break;
@@ -172,7 +172,7 @@ namespace Inpaint {
         cv::flann::KDTreeIndexParams kdtree(1);
         cv::flann::LinearIndexParams linear;
         const bool canUseKdTree = clusters.cols < 10 && clusters.rows > 20;
-        cv::flann::IndexParams &params = canUseKdTree ? (cv::flann::IndexParams &)kdtree : (cv::flann::IndexParams &)linear;       
+        cv::flann::IndexParams &params = canUseKdTree ? (cv::flann::IndexParams &)kdtree : (cv::flann::IndexParams &)linear;
         cv::flann::Index index(clusters, params);
 
         // Basic procedure: For each cluster, find its nearest neighbor. If the nearest neighbor is within the bandwidth,
@@ -217,7 +217,7 @@ namespace Inpaint {
         cv::flann::KDTreeIndexParams kdtree(1);
         cv::flann::LinearIndexParams linear;
         const bool canUseKdTree = clusters.cols < 10 && clusters.rows > 20;
-        cv::flann::IndexParams &params = canUseKdTree ? (cv::flann::IndexParams &)kdtree : (cv::flann::IndexParams &)linear;       
+        cv::flann::IndexParams &params = canUseKdTree ? (cv::flann::IndexParams &)kdtree : (cv::flann::IndexParams &)linear;
         cv::flann::Index index(clusters, params);
 
         cv::Mat_<int> nbr(1, 1);
@@ -232,13 +232,12 @@ namespace Inpaint {
 
 
     void meanShift(
-        cv::InputArray features_, cv::InputArray seeds_, cv::InputArray weights_, 
-        cv::OutputArray centers_, cv::OutputArray labels_, cv::OutputArray distances_,   
-        float bandwidth, int maxIterations, bool perturbate, bool mergeClusters, bool sortClusters)
+            cv::InputArray features_, cv::InputArray seeds_, cv::InputArray weights_,
+            cv::OutputArray centers_, cv::OutputArray labels_, cv::OutputArray distances_,
+            float bandwidth, int maxIterations, bool perturbate, bool mergeClusters, bool sortClusters)
     {
-        CV_Assert(
-            features_.type() == CV_MAKETYPE(CV_32F, 1) &&
-            maxIterations > 0);
+        CV_Assert(features_.type() == CV_MAKETYPE(CV_32F, 1));
+        CV_Assert(maxIterations > 0);
 
         cv::Mat features = features_.getMat();
         cv::Mat seeds;
@@ -246,9 +245,8 @@ namespace Inpaint {
         
         // Deal with seeds
         if (!seeds_.empty()) {
-            CV_Assert(
-                seeds_.type() == CV_MAKETYPE(CV_32F, 1) &&
-                seeds_.cols() == features_.cols());
+            CV_Assert(seeds_.type() == CV_MAKETYPE(CV_32F, 1));
+            CV_Assert(seeds_.cols() == features_.cols());
 
             seeds = seeds_.getMat().clone();
         } else {
@@ -258,9 +256,8 @@ namespace Inpaint {
 
         // Deal with weights
         if (!weights_.empty()) {
-            CV_Assert(
-                weights_.type() == CV_MAKETYPE(CV_32F, 1) &&
-                weights_.cols() == features_.rows());
+            CV_Assert(weights_.type() == CV_MAKETYPE(CV_32F, 1));
+            CV_Assert(weights_.cols() == features_.rows());
 
             weights = weights_.getMat();
         } else {

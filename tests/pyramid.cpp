@@ -52,4 +52,3 @@ TEST_CASE("pyramid")
     REQUIRE(pyr[2].size() == cv::Size(80, 60));
     REQUIRE(pyr[3].size() == cv::Size(40, 30));
 }
-

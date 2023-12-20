@@ -32,10 +32,10 @@ namespace Inpaint {
         {}
 
         inline double operator() (
-            const cv::Mat &source, 
-            const cv::Mat &target, const cv::Mat &targetMask, 
-            cv::Point sc, cv::Point tc, 
-            int halfPatchSize) const
+                const cv::Mat &source,
+                const cv::Mat &target, const cv::Mat &targetMask,
+                cv::Point sc, cv::Point tc,
+                int halfPatchSize) const
         {
             // If we are on a target boundary, exit.
             if (isCenteredPatchCrossingBoundary(tc, halfPatchSize, target))
@@ -51,7 +51,7 @@ namespace Inpaint {
 
             // If a target mask was specified, ensure we don't try to read from unmasked areas.
             if (HasTargetMaskSupport) {
-                cv::Mat pTargetMask = topLeftPatch(targetMask, rects.second);            
+                cv::Mat pTargetMask = topLeftPatch(targetMask, rects.second);
                 if (cv::countNonZero(pTargetMask) != rects.second.area()) {
                     return std::numeric_limits<double>::max();
                 }
@@ -65,10 +65,10 @@ namespace Inpaint {
 
     template<class Distance>
     inline void patchMatchPropagateForward(
-        cv::Mat source, cv::Mat target, cv::Mat targetMask,
-        cv::Mat corrs, cv::Mat distances,
-        int halfPatchSize,
-        const Distance &distance)
+            cv::Mat source, cv::Mat target, cv::Mat targetMask,
+            cv::Mat corrs, cv::Mat distances,
+            int halfPatchSize,
+            const Distance &distance)
     {
         // When forward we look at left and up neighbor
 
@@ -90,9 +90,9 @@ namespace Inpaint {
 
                 cv::Vec2i nCorrX = corrsRow[x + offsets[0]] + cv::Vec2i(-offsets[0], 0);
                 double d = distance(
-                    source, target, targetMask,
-                    curPos, nCorrX,
-                    halfPatchSize);
+                            source, target, targetMask,
+                            curPos, nCorrX,
+                            halfPatchSize);
 
                 if (d < bestDist) {
                     bestDist = d;
@@ -101,9 +101,9 @@ namespace Inpaint {
 
                 cv::Vec2i nCorrY = corrsRowOther[x] + cv::Vec2i(0, -offsets[1]);
                 d = distance(
-                    source, target, targetMask,
-                    curPos, nCorrY,
-                    halfPatchSize);
+                            source, target, targetMask,
+                            curPos, nCorrY,
+                            halfPatchSize);
 
                 if (d < bestDist) {
                     bestDist = d;
@@ -119,10 +119,10 @@ namespace Inpaint {
     
     template<class Distance>
     inline void patchMatchPropagateBackward(
-        cv::Mat source, cv::Mat target, cv::Mat targetMask,
-        cv::Mat corrs, cv::Mat distances,
-        int halfPatchSize,
-        const Distance &distance)
+            cv::Mat source, cv::Mat target, cv::Mat targetMask,
+            cv::Mat corrs, cv::Mat distances,
+            int halfPatchSize,
+            const Distance &distance)
     {
         // Backward we try to propagate from right and down.
         
@@ -144,9 +144,9 @@ namespace Inpaint {
 
                 cv::Vec2i nCorrX = corrsRow[x + offsets[0]] + cv::Vec2i(-offsets[0], 0);
                 double d = distance(
-                    source, target, targetMask,
-                    curPos, nCorrX,
-                    halfPatchSize);
+                            source, target, targetMask,
+                            curPos, nCorrX,
+                            halfPatchSize);
 
                 if (d < bestDist) {
                     bestDist = d;
@@ -155,9 +155,9 @@ namespace Inpaint {
 
                 cv::Vec2i nCorrY = corrsRowOther[x] + cv::Vec2i(0, -offsets[1]);
                 d = distance(
-                    source, target, targetMask,
-                    curPos, nCorrY,
-                    halfPatchSize);
+                            source, target, targetMask,
+                            curPos, nCorrY,
+                            halfPatchSize);
 
                 if (d < bestDist) {
                     bestDist = d;
@@ -172,12 +172,12 @@ namespace Inpaint {
 
     template<class Distance>
     inline void patchMatchExponentialSearch(
-        cv::Mat source, cv::Mat target, cv::Mat targetMask,
-        cv::Mat corrs, cv::Mat distances,
-        int halfPatchSize,
-        const Distance &distance,
-        double alpha,
-        int maxRadius)
+            cv::Mat source, cv::Mat target, cv::Mat targetMask,
+            cv::Mat corrs, cv::Mat distances,
+            int halfPatchSize,
+            const Distance &distance,
+            double alpha,
+            int maxRadius)
     {
         cv::RNG rng(cv::getTickCount());
 
@@ -211,9 +211,9 @@ namespace Inpaint {
                     cv::Vec2i testPos(rng.uniform(minX, maxX), rng.uniform(minY, maxY));
 
                     double d = distance(
-                        source, target, targetMask,
-                        curPos, testPos,
-                        halfPatchSize);
+                                source, target, targetMask,
+                                curPos, testPos,
+                                halfPatchSize);
 
                     if (d < bestDist) {
                         bestDist = d;
@@ -229,14 +229,14 @@ namespace Inpaint {
             }
         }
     }
-   
+
     template<class Distance>
     inline void patchMatchOnce(
-        cv::Mat source, cv::Mat target, cv::Mat targetMask,
-        cv::Mat corrs, cv::Mat distances,
-        int halfPatchSize,
-        const Distance &d, bool forward,
-        double alpha, int maxRadius)
+            cv::Mat source, cv::Mat target, cv::Mat targetMask,
+            cv::Mat corrs, cv::Mat distances,
+            int halfPatchSize,
+            const Distance &d, bool forward,
+            double alpha, int maxRadius)
     {
         if (forward) {
             patchMatchPropagateForward(source, target, targetMask, corrs, distances, halfPatchSize, d);
@@ -248,20 +248,18 @@ namespace Inpaint {
 
     template<class Distance>
     void patchMatch(
-        cv::InputArray &source_, 
-        cv::InputArray &target_, cv::InputArray &targetMask_, 
-        cv::OutputArray &corrs_, cv::OutputArray &distances_,
-        int halfPatchSize,
-        int iterations,
-        const Distance &distance)
+            cv::InputArray &source_,
+            cv::InputArray &target_, cv::InputArray &targetMask_,
+            cv::OutputArray &corrs_, cv::OutputArray &distances_,
+            int halfPatchSize,
+            int iterations,
+            const Distance &distance)
     {
-        CV_Assert(
-                (source_.type() == CV_MAKETYPE(CV_8U, 1) || source_.type() == CV_MAKETYPE(CV_8U, 3)) &&
-                (target_.type() == source_.type()) &&
-                (targetMask_.empty() || (targetMask_.type() == CV_MAKETYPE(CV_8U, 1) && (targetMask_.size() == target_.size()))) &&
-                (halfPatchSize > 0) &&
-                (iterations >= 0)
-        );
+        CV_Assert(source_.type() == CV_MAKETYPE(CV_8U, 1) || source_.type() == CV_MAKETYPE(CV_8U, 3));
+        CV_Assert(target_.type() == source_.type());
+        CV_Assert(targetMask_.empty() || (targetMask_.type() == CV_MAKETYPE(CV_8U, 1) && targetMask_.size() == target_.size()));
+        CV_Assert(halfPatchSize > 0);
+        CV_Assert(iterations >= 0);
 
         cv::Mat source = source_.getMat();
         cv::Mat target = target_.getMat();
@@ -272,8 +270,8 @@ namespace Inpaint {
         bool neededRandomInitialization = false;
         if (!corrs_.empty()) {
             // Assume we have prior guess / knowledge about correspondences
-            CV_Assert(corrs_.type() == CV_MAKETYPE(CV_32S, 2) &&
-                      corrs_.size() == source.size());
+            CV_Assert(corrs_.type() == CV_MAKETYPE(CV_32S, 2));
+            CV_Assert(corrs_.size() == source.size());
             corrs = corrs_.getMat();
         } else {
             // Otherwise perform random initialization
@@ -295,12 +293,12 @@ namespace Inpaint {
             }
         }
 
-        // If distances are provided treat them as prior knowlegde. This only makes sense when 
+        // If distances are provided treat them as prior knowlegde. This only makes sense when
         // concurrently passing prior correspondences.
         if (!distances_.empty()) {
-            CV_Assert(!neededRandomInitialization &&
-                distances_.size() == source.size() &&
-                distances_.type() == CV_MAKETYPE(CV_64F, 1));
+            CV_Assert(!neededRandomInitialization);
+            CV_Assert(distances_.size() == source.size());
+            CV_Assert(distances_.type() == CV_MAKETYPE(CV_64F, 1));
 
             distances = distances_.getMat();
         } else {
@@ -313,9 +311,9 @@ namespace Inpaint {
                 double *distancesRow = distances.ptr<double>(y);
                 for (int x = 0; x < source.cols; ++x) {
                     double d = distance(
-                        source, target, targetMask, 
-                        cv::Point(x, y), corrsRow[x], 
-                        halfPatchSize);
+                                source, target, targetMask,
+                                cv::Point(x, y), corrsRow[x],
+                                halfPatchSize);
                     distancesRow[x] = d;
                 }
             }
@@ -330,14 +328,14 @@ namespace Inpaint {
         }
     }
 
-   
+
     void patchMatch(
-        cv::InputArray &source_, 
-        cv::InputArray &target_, cv::InputArray &targetMask_, 
-        cv::InputOutputArray &corrs_, cv::InputOutputArray &distances_,
-        int halfPatchSize,
-        int iterations,
-        int normType)
+            cv::InputArray &source_,
+            cv::InputArray &target_, cv::InputArray &targetMask_,
+            cv::InputOutputArray &corrs_, cv::InputOutputArray &distances_,
+            int halfPatchSize,
+            int iterations,
+            int normType)
     {
 
         if (targetMask_.empty()) {

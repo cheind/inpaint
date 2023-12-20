@@ -33,13 +33,13 @@ TEST_CASE("gradient")
     // Reference
     cv::Mat gradX, gradY;
     cv::Sobel(img, gradX, CV_32F, 1, 0, 3, 1, 0, cv::BORDER_CONSTANT);
-	cv::Sobel(img, gradY, CV_32F, 0, 1, 3, 1, 0, cv::BORDER_CONSTANT);
+    cv::Sobel(img, gradY, CV_32F, 0, 1, 3, 1, 0, cv::BORDER_CONSTANT);
 
     for (int y = 1; y < img.rows - 1; ++y) {
         for (int x = 1; x < img.cols - 1; ++x) {
             const cv::Vec2f gref(gradX.at<float>(cv::Point(x,y)), gradY.at<float>(cv::Point(x,y)));
             
-            cv::Vec2f g = gradient(img, y, x);            
+            cv::Vec2f g = gradient(img, y, x);
             REQUIRE(g[0] == Approx(gref[0]));
             REQUIRE(g[1] == Approx(gref[1]));
 
